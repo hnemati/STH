@@ -27,6 +27,9 @@
 // ASM macros
 **************/ 
     
+#define STR(x) #x
+#define HYPERCALL_NUM(n) "#"STR(n)
+    
 #define ISSUE_HYPERCALL(num) \
 asm volatile (\ "SWI " HYPERCALL_NUM((num)) "         \n\t" \ );
  
@@ -43,8 +46,12 @@ asm volatile ("mov R0, %0 			\n\t" \
  
 /*
  * Hypercalls
+ *
+ * *** important NOTE ***
+ * If you change anything here, make sure the corresponding lines
+ * in library/guest/include/hypercalls.h is also modified
  */ 
-    
+     
 #define HYPERCALL_GUEST_INIT			1000
     
 /*INTERRUPT */ 

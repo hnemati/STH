@@ -54,7 +54,10 @@ void timer_tick_start(cpu_callback handler)
 	timer->channels[1].idr = -1;
 }  void soc_timer_init() 
 {
-	 memspace_t * ms =
+	
+	    /*Needs to be rewritten */ 
+#if 0
+	    memspace_t * ms =
 	    env_map_from(PROC_TYPE_HYPERVISOR, PROC_TYPE_HYPERVISOR,
 			 "__soc_timer", TIMER_BASE, sizeof(timer_registers),
 			 TRUE);
@@ -67,6 +70,8 @@ void timer_tick_start(cpu_callback handler)
 	timer->channels[0].idr = -1;
 	timer->channels[1].idr = -1;
 	timer->channels[2].idr = -1;
-}
+	
+#endif	/*  */
+}
 
 

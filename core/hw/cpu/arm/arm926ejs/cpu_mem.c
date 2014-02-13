@@ -80,4 +80,8 @@
 	}
 }
 
-
+ void mem_cache_dcache_area(addr_t va, uint32_t size, uint32_t op) 
+{
+	
+	    /*Dummy not yet implemented */ 
+} 

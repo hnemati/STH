@@ -36,7 +36,9 @@ static char buffer_out[USART_BUFFER_SIZE];
 /**********************************************************************/ 
 void soc_uart_init() 
 {
-	memspace_t * ms_uart;
+	
+#if 0
+	    memspace_t * ms_uart;
 	  ms_uart =
 	    env_map_from(PROC_TYPE_HYPERVISOR, PROC_TYPE_HYPERVISOR,
 			 "__soc_usart", USART0_BASE, sizeof(usart_registers),
@@ -62,6 +64,8 @@ void soc_uart_init()
 	 
 	    /* now enable in/out */ 
 	    usart0->cr = 0x050;
- }
+	
+#endif	/*  */
+}
 
  

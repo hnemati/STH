@@ -2,7 +2,10 @@
 #include <mmu.h>
  void soc_clocks_init() 
 {
-	powersaving_registers * power;
+	
+	    /*Needs to be rewritten */ 
+#if 0
+	    powersaving_registers * power;
 	memspace_t * ms_power;
 	 
 #if 1
@@ -33,6 +36,7 @@
 #else	/*  */
 	    env_memspace_free(PROC_TYPE_HYPERVISOR, ms_power, TRUE);
 	
+#endif	/*  */
 #endif	/*  */
 }
 

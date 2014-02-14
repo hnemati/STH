@@ -74,6 +74,7 @@ asm volatile ("mov R0, %0 			\n\t" \
      
 /*NEW MEMORY MANAGEMENT*/ 
 #define HYPERCALL_MMU_L1_UNMAP				1022
+#define HYPERCALL_MMU_L1_SEC_MAP                        1023
     
 /* WARNING: TODO, this stuff must be in a configuration file */ 
 #define INITIAL_PT_FIXED_MAP_VA (0x00000000)
@@ -83,6 +84,10 @@ asm volatile ("mov R0, %0 			\n\t" \
     
 #define ERR_HYP_RESERVED_VA (1)
 #define ERR_HYP_ENTRY_UNMAPPED (2)
+#define ERR_HYP_OUT_OF_RANGE_PA (3)
+#define ERR_HYP_SECTION_NOT_UNMAPPED (4)
+#define ERR_HYP_PH_BLOCK_NOT_WRITABLE (5)
+#define ERR_HYP_AP_UNSUPPORTED (6)
     
 #define PAGE_INFO_TYPE_DATA 0
 #define PAGE_INFO_TYPE_L1PT 1

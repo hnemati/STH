@@ -29,4 +29,4 @@ typedef union dmmu_entry {
 int mmu_lookup_guest(addr_t vadr, addr_t * padr, int user_write);
 int mmu_lookup_hv(addr_t vadr, addr_t * padr, int hv_write);
 
-#endif
+#endif				/* _DMMU_H_ */

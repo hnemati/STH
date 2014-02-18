@@ -75,4 +75,4 @@ int mmu_lookup_hv(addr_t vadr, addr_t * padr, int hv_write);
 #define START_PA_OF_SECTION(sec) ((sec->addr) << 20)
 #define PA_OF_POINTED_PT(pt) ((pt->addr) << 10)
 
-#endif
+#endif				/* _DMMU_H_ */

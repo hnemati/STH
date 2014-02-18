@@ -59,7 +59,7 @@ extern hc_config minimal_config;
 	
 	    /*Setup heap pointer */ 
 	    core_mem_init();
-	 uint32_t j;
+	 uint32_t j, va_offset;
 	 cpu_type type;
 	cpu_model model;
 	 cpu_get_type(&type, &model);
@@ -89,11 +89,14 @@ extern hc_config minimal_config;
 		
 		else if (list->type != MLT_NONE) {
 			j = (list->page_start) >> 8;	/*Get L1 Page index */
+			va_offset = 0;
+			if (list->type == MLT_HYPER_RAM
+			     || list->type == MLT_TRUSTED_RAM)
+				va_offset = (uint32_t) HAL_OFFSET;
 			for (; j < ((list->page_count) >> 8); j++) {
-				
-				    /*Creates 1:1 Mapping */ 
-				    pt_create_section(flpt_va, (j << 20),
-						      j << 20, list->type);
+				 pt_create_section(flpt_va,
+						     (j << 20) - va_offset,
+						     j << 20, list->type);
 			}
 		}
 		if (list->flags & MLF_LAST)
@@ -149,6 +152,7 @@ extern hc_config minimal_config;
 	linux_init();
 	
 #else	/*  */
+#ifdef GUANCIO_BOOT_TEST
 	    /* GUANCIO CHANGES */ 
 	    /* - The hypervisor must be always able to read/write the guest PTs */ 
 	    /*   we constraint that for the minimal guests, the page tables */ 
@@ -243,7 +247,12 @@ extern hc_config minimal_config;
 			2].type = PAGE_INFO_TYPE_L1PT;
 	ph_block_state[PA_TO_PH_BLOCK(0x01200000 + HAL_PHYS_START) +
 			3].type = PAGE_INFO_TYPE_L1PT;
-	 
+	
+#else	/*  */
+	    pt_create_section(flpt_va, 0xc0000000,
+			      0x01000000 + HAL_PHYS_START, MLT_USER_RAM);
+	
+#endif	/*  */
 	    // test the hypercall
 	    //uint32_t res;
 	    // I can not unmap 0, since it is reserved by the hypervisor to access the guest page tables
@@ -264,8 +273,6 @@ extern hc_config minimal_config;
 #endif	/*  */
 #ifdef TRUSTED
 	    get_guest(guest++);
-	pt_create_section(flpt_va, 0xF0100000, 0x00100000 + HAL_PHYS_START,
-			   MLT_TRUSTED_RAM);
 	curr_vm->mode_states[HC_GM_TRUSTED].ctx.sp =
 	    curr_vm->config->rpc_handlers->sp;
 	curr_vm->mode_states[HC_GM_TRUSTED].ctx.psr =
@@ -313,9 +320,12 @@ extern hc_config minimal_config;
 	    /* Initialize hardware */ 
 	    soc_init();
 	board_init();
-	
+	 
 	    /* Setting up exception handlers and starting timer */ 
 	    setup_handlers();
+	 
+	    /* dmmu init */ 
+	    dmmu_init();
 	 
 	    /* Initialize hypervisor guest modes and data structures
 	     * according to config file in guest*/ 

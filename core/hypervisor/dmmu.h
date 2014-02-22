@@ -89,13 +89,22 @@ typedef __PACKED struct l1_small {
 #define ERR_MMU_IS_NOT_L1_PT                (20)
 #define ERR_MMU_UNIMPLEMENTED               (-1)
 
+<<<<<<<HEAD
 #define PAGE_INFO_TYPE_DATA 0
 #define PAGE_INFO_TYPE_L1PT 1
 #define PAGE_INFO_TYPE_L2PT 2
 #define PAGE_INFO_TYPE_INVALID 3
+    == == == =
+/* in tranelate.c */
+int mmu_lookup_guest(addr_t vadr, addr_t * padr, int user_write);
+int mmu_lookup_hv(addr_t vadr, addr_t * padr, int hv_write);
+addr_t mmu_guest_pa_to_va(addr_t padr, hc_config * config);
+void mmu_bft_region_set(addr_t start, size_t size, uint32_t refc,
+			uint32_t typ);
+
+>>>>>>>SICS branch rebased to the KTH branch.
 #define DESC_TYPE_MASK 0b11
 #define UNMAPPED_ENTRY 0
-
 #define L1_SEC_DESC_MASK 0xFFF00000
 #define L1_SEC_DESC_ATTR_MASK 0x000BFFFC
 #define L1_BASE_MASK 0xFFFFC000
@@ -104,13 +113,10 @@ typedef __PACKED struct l1_small {
 #define L1_PT_DESC_ATTR_MASK 0x000003FC
 #define SECTION_SIZE (0x00100000)
 #define MAX_30BIT 0x3fffffff
-
 #define VA_TO_L1_IDX(va) (va >> 20)
 #define L1_IDX_TO_PA(l1_base, idx) ((l1_base & 0xFFFFC000) | (idx << 2))
 #define L2_IDX_TO_PA(l2_base, idx) ((l2_base & 0xFFFFF000) | (idx << 2))
-
 #define L1_TYPE(l1_desc) (l1_desc & DESC_TYPE_MASK)
-
 #define UNMAP_L1_ENTRY(l1_desc) (l1_desc && 0b00)
 #define UNMAP_L2_ENTRY(l2_desc) (l2_desc && 0b00)
 #define CREATE_L1_SEC_DESC(x, y) (L1_SEC_DESC_MASK & x) | (L1_SEC_DESC_ATTR_MASK & y) | (0b10)
@@ -119,13 +125,10 @@ typedef __PACKED struct l1_small {
 #define GET_L2_AP(attrs) ((attrs >> 7) & 0b100) | (((attrs >> 4) & 0b11))
 #define L1_DESC_PXN(x) ((x & 0x4) >> 2)
 #define L2_DESC_PA(l2_base_add, l2_idx) (l2_base_add | (l2_idx << 2) | 0)
-
 #define START_PA_OF_SECTION(sec) (((uint32_t)sec->addr) << 20)
 #define PA_OF_POINTED_PT(pt) (((uint32_t)pt->addr) << 10)
-
 #define PA_TO_PH_BLOCK(pa) (pa >> 12)
 #define PT_PA_TO_PH_BLOCK(pa) (pa >> 2)
-
 /* in tranelate.c */
 int mmu_lookup_guest(addr_t vadr, addr_t * padr, int user_write);
 int mmu_lookup_hv(addr_t vadr, addr_t * padr, int hv_write);

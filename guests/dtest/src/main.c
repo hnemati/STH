@@ -840,14 +840,18 @@ enum dmmu_command { CMD_MAP_L1_SECTION, CMD_UNMAP_L1_PT_ENTRY,
 	uint32_t pa, va, attrs, res;
 	int j;
 	 
-	    // #0: this test should fail because guest is trying to create a new page table in a part of the memory that is reserved for hypervisor use
+	    // #-1: this test should fail because guest is trying to create a new page table in a part of the memory that is reserved for hypervisor use
 	    pa = 0x80000000;
+	ISSUE_DMMU_HYPERCALL(CMD_CREATE_L1_PT, pa, 0, 0);
+	 
+	    // #0: this test should fail because L1 base is not aligned
+	    pa = 0x81101000;
 	ISSUE_DMMU_HYPERCALL(CMD_CREATE_L1_PT, pa, 0, 0);
 	 
 	    // #1: this test should fail because guest is trying to create a new page table in a part of the memory where another L1 resides in
 	    pa = 0x81200000;
 	ISSUE_DMMU_HYPERCALL(CMD_CREATE_L1_PT, pa, 0, 0);
-	 
+	  
 	    // #2: this test should fail because guest is trying to create a page table using referenced data pages
 	    // Creating an L2 to map
 	    for (j = 0; j < 1024; j++)
@@ -979,19 +983,36 @@ enum dmmu_command { CMD_MAP_L1_SECTION, CMD_UNMAP_L1_PT_ENTRY,
 	else
 		printf("unmap_L2_pt 7: FAIL, l2_base %x pg_idx %x, res %d\n",
 			pa, res);
-	  
-	    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	    
-/*
-	// creating a writable section to map
-	// for this test minimal_config.c has been modified and now ".pa_for_pt_access_end = HAL_PHYS_START + 0x014fffff"
-	attrs = 0xc2e;
-	va = 0xc0500000;
-	pa = 0x81300000;
-	ISSUE_DMMU_HYPERCALL(CMD_MAP_L1_SECTION, va, pa, attrs);
-	// after this test I changed minimal_config.c file to its previous value ".pa_for_pt_access_end = HAL_PHYS_START + 0x012fffff"
-*/ 
-	    
+	    
+	    // #8 ....
+	    // creating a writable section to map
+	    // for this test minimal_config.c has been modified and now ".pa_for_pt_access_end = HAL_PHYS_START + 0x014fffff"
+	    attrs = 0xc2e;
+	va = 0xc0500000;
+	pa = 0x81300000;
+	ISSUE_DMMU_HYPERCALL(CMD_MAP_L1_SECTION, va, pa, attrs);
+	
+	    // after this test I changed minimal_config.c file to its previous value ".pa_for_pt_access_end = HAL_PHYS_START + 0x012fffff"
+	    l1[0] = ((uint32_t) 0x81300C02);	// section descriptor with write access,  mapping of this section succeed
+	//l1[1] = ((uint32_t)0x81200802); // section descriptor with read-only access
+	l1[1] = ((uint32_t) 0x81200C02);	// section descriptor with write access , this should make the L1 invalid and it was a successful attempt
+	for (j = 2; j < 4096; j++)
+		l1[j] = ((uint32_t) 0x0);
+	va = 0x100000;
+	memcpy((void *)va, l1, sizeof l1);
+	 pa = 0x81100000;	// L1 base address
+	ISSUE_DMMU_HYPERCALL(CMD_CREATE_L1_PT, pa, 0, 0);
+ asm("mov  %[result],r0 \n\t" : [result] "=r"(res) :	/*input */ 
+ :				/* No clobbers */ );
+	if (res == 0)
+		printf("unmap_L2_pt 8: SUCCESS, l2_base %x, res %d\n", pa,
+			res);
+	
+	else
+		printf("unmap_L2_pt 8: FAIL, l2_base %x pg_idx %x, res %d\n",
+			pa, res);
+	 
+	    // #9 ....
 	    // Creating an L2 to map
 	    for (j = 0; j < 1024; j++)
 		l2[j] = ((uint32_t) 0x0);
@@ -1001,10 +1022,7 @@ enum dmmu_command { CMD_MAP_L1_SECTION, CMD_UNMAP_L1_PT_ENTRY,
 	    // end of L2 page table creation
 	    
 	    // Writing content of the new L1 page table
-	    l1[0] = ((uint32_t) 0x81200802);	// section descriptor with read-only access
-	//l1[1] = ((uint32_t)0x81200C02); // section descriptor with write access , this should make the L1 invalid and it was a successful attempt
-	//l1[1] = ((uint32_t)0x81300C02); // section descriptor with write access,  mapping of this section succeed
-	 for (j = 2; j < 4096; j++)
+	    for (j = 0; j < 4096; j++)
 		l1[j] = ((uint32_t) 0x81150001);	// L2 page table descriptor
 	va = 0x100000;
 	memcpy((void *)va, l1, sizeof l1);
@@ -1019,10 +1037,11 @@ enum dmmu_command { CMD_MAP_L1_SECTION, CMD_UNMAP_L1_PT_ENTRY,
    asm("mov  %[result],r0 \n\t" : [result] "=r"(res) :	/*input */ 
  :				/* No clobbers */ );
 	if (res == 0)
-		printf("create_L2_pt 1: SUCCESS, add %x, res %d\n", pa, res);
+		printf("create_L2_pt 10: SUCCESS, add %x, res %d\n", pa,
+			res);
 	
 	else
-		printf("create_L2_pt 1: FAIL, add %x, res %d\n", pa, res);
+		printf("create_L2_pt 10: FAIL, add %x, res %d\n", pa, res);
 	 
 	    //ISSUE_DMMU_HYPERCALL(CMD_SWITCH_ACTIVE_L1, pa, 0, 0); // just to see if it possible to switch the active L1 or not
 }

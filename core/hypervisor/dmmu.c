@@ -729,6 +729,8 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	dmmu_entry_t *bft_entry[4];
 	int i;
 
+	// checking to see
+
 	/*Check that the guest does not override the physical addresses outside its range */
 	// TODO, where we take the guest assigned physical memory?
 	uint32_t guest_start_pa = curr_vm->config->pa_for_pt_access_start;

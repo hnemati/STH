@@ -17,6 +17,9 @@ CMD_CREATE_L1_PT, CMD_SWITCH_ACTIVE_L1, CMD_FREE_L1
 
 #define ISSUE_DMMU_HYPERCALL(type, p0, p1, p2) \
     syscall_dmmu(type | (p2 << 4), p0, p1);
+ 
+#define ISSUE_DMMU_HYPERCALL_(type, p0, p1, p2, p3) \
+    syscall_dmmu((type | (p2 & 0xFFFFFFF0)), p0, ((p1 << 20) | p3));
  void dmmu_map_L1_section_() 
 {
 	uint32_t va, pa, attrs, res;
@@ -326,111 +329,63 @@ CMD_CREATE_L1_PT, CMD_SWITCH_ACTIVE_L1, CMD_FREE_L1
 	    pga = 0x81110000;
 	idx = 0xc2;
 	attrs = 0x32;
-	
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, 0x0, idx, 0);
+	res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, 0x0, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 	t_id++;
 	 
-	    // #0: L2 base address is ok, but guest can not map a page outside the allowed range into its L2 page table entries
+	    // #1: L2 base address is ok, but guest can not map a page outside the allowed range into its L2 page table entries
 	    pga = 0x0;
 	idx = 0xc2;
 	attrs = 0x32;
-	
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
+	res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 	t_id++;
 	  
-	    // #1: All the parameters are correct and this test should succeed
+	    // #2: All the parameters are correct and this test should succeed
 	    pga = 0x81110000;
 	idx = 0xc2;
 	attrs = 0x32;
-	
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
+	res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 	t_id++;
 	 
-	    // #2: this test should fail, because the entry has already been mapped.
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
+	    // #3: this test should fail, because the entry has already been mapped.
+	    res =
+	    ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 	t_id++;
 	 
-	    // #3: this test should fail, because guest can not map a page table to an entry of the given L2 with writable access permission
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pa) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
+	    // #4: this test should fail, because guest can not map a page table to an entry of the given L2 with writable access permission
+	    res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pa, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 	t_id++;
 	 
-	    // #4: this test should fail, because guest can not map any thing to an entry of a data page
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pga, idx, 0);
+	    // #5: this test should fail, because guest can not map any thing to an entry of a data page
+	    res =
+	    ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pga, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
-	t_id++;;
+	t_id++;
 	 
-	    // #5: this test should fail, because guest is passing an unsupported  access permission
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
+	    // #6: this test should fail, because guest is passing an unsupported  access permission
 	    attrs = 0x02;
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
-	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
-	t_id++;
-	 
-	    // #6: All the parameters are correct and this test should succeed
-	    // in this test reference counter of the mapped page should not be increased
-	    pga = 0x81110000;
-	idx = 0xab;
-	attrs = 0x22;
-	
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pga) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
+	res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 	t_id++;
 	 
 	    // #7: All the parameters are correct and this test should succeed
+	    // in this test reference counter of the mapped page should not be increased
+	    pga = 0x81110000;
+	idx = 0xab;
+	attrs = 0x22;
+	res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pga, attrs);
+	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
+	t_id++;
+	 
+	    // #8: All the parameters are correct and this test should succeed
 	    // in this test guest is mapping the L2 base address into one of L2 entry with read-only access permission
 	    idx = 0xac;
 	attrs = 0x22;
-	
-	    // TODO: system call need to be modified to hold 4 parameters. For now I am writing attrs argument manually in r3.
- asm("mov  r4, %[value] \n\t" : :[value] "r"(attrs) /*input */ 
- :				/* No clobbers */ );
- asm("mov  r3, %[value] \n\t" : :[value] "r"(pa) /*input */ 
- :				/* No clobbers */ );
-	res = ISSUE_DMMU_HYPERCALL(CMD_MAP_L2_ENTRY, pa, idx, 0);
+	res = ISSUE_DMMU_HYPERCALL_(CMD_MAP_L2_ENTRY, pa, idx, pga, attrs);
 	print_3_err(t_id, "MAP L2 ENTRY", pa, pga, res);
 }
 
@@ -783,10 +738,10 @@ CMD_CREATE_L1_PT, CMD_SWITCH_ACTIVE_L1, CMD_FREE_L1
 		
 		    //dmmu_map_L1_section_();
 		    //dmmu_unmap_L1_pageTable_entry_();
-		    dmmu_create_L2_pt_();
-		
+		    //dmmu_create_L2_pt_();
 		    //dmmu_l1_pt_map_();
-		    //dmmu_l2_map_entry_();
+		    dmmu_l2_map_entry_();
+		
 		    //dmmu_l2_unmap_entry_();
 		    //dmmu_unmap_L2_pt_();
 		    //dmmu_create_L1_pt_();

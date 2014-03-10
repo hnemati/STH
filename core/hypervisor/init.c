@@ -81,7 +81,11 @@ void dump_mmu(addr_t adr)
 
  
 /*****************************/ 
- void memory_init() 
+void memory_commit() 
+{
+	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
+	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
+}  void memory_init() 
 {
 	
 	    /*Setup heap pointer */ 
@@ -142,9 +146,8 @@ void dump_mmu(addr_t adr)
 	    /*map 0xffff0000 to Vector table, interrupt have been relocated to this address */ 
 	    pt_map(0xFFFF0000, (uint32_t) GET_PHYS(&_interrupt_vector_table),
 		   0x1000, MLT_USER_ROM);
-	 mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
+	memory_commit();
+	mem_cache_set_enable(TRUE);
 	mem_mmu_set_domain(0x55555555);	//Start with access to all domains
 }
 
@@ -167,9 +170,20 @@ void dump_mmu(addr_t adr)
 	
 	    /*Start with VM_0 as the current VM */ 
 	    curr_vm = &vm_0;
-	 printf("HV pagetable before guests initialization:\n");	// DEBUG
+	  printf("HV pagetable before guests initialization:\n");	// DEBUG
 	dump_mmu(flpt_va);	// DEBUG
-	
+	 
+	    /* show guest information */ 
+	    printf("We have %d guests in physical memory area %x %x\n",
+		   guests_db.count, guests_db.pstart, guests_db.pend);
+	 for (i = 0; i < guests_db.count; i++) {
+		printf("Guest_%d: PA=%x+%x VA=%x FWSIZE=%x\n", i,
+			guests_db.guests[i].pstart,
+			guests_db.guests[i].psize,
+			guests_db.guests[i].vstart,
+			guests_db.guests[i].fwsize);
+	}
+	  
 #ifdef LINUX
 	    vm_0.config = &linux_config;
 	vm_0.config.firmware = get_guest(guest++);
@@ -206,8 +220,7 @@ void dump_mmu(addr_t adr)
 		COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, pmd);
 		printf("%x -> %x\n", va, pa);	// DEBUG
 	}
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
+	memory_commit();
 	 printf("HV pagetable after guests initialization:\n");	// DEBUG    
 	dump_mmu(flpt_va);	// DEBUG    
 	
@@ -220,38 +233,31 @@ void dump_mmu(addr_t adr)
 	    // - THIS‌ SETUP ‌MUST ‌BE ‌FIXED, SINCE ‌THE ‌GUEST ‌IS ‌NOT ‌ALLOWED ‌TO ‌WRITE ‌IN TO ‌ITS ‌WHOLE‌ MEMORY
 	    
 	    /* - Create a copy of the master page table for the guest in the physical address: pa_initial_l1 */ 
-	    uint32_t index;
-	uint32_t value;
-	uint32_t * guest_pt_va;
+	    uint32_t * guest_pt_va;
 	guest_pt_va =
 	    mmu_guest_pa_to_va(vm_0.config->pa_initial_l1, &(vm_0.config));
-	for (index = 0; index < 4096; index++) {
-		value = *(flpt_va + index);
-		 
+	printf("COPY %x %x\n", guest_pt_va, flpt_va);
+	memcpy(guest_pt_va, flpt_va, 1024 * 16);
+	 
 #if 0
-		    /* reomved by Arash: what is this code?? */ 
-		    // Hamed Changes , Creating a valid L1 according to the verified L1_create API
-		    if ((value & 0 b1) == 1)
-			bft[PA_TO_PH_BLOCK(value)].type =
-			    PAGE_INFO_TYPE_L2PT;
-		if (((value & 0xFFFF0000) == 0x81200000))
-			*(guest_pt_va + index) = (value & 0xFFFFFBFF);
-		
-		    // END Hamed Changes
+	    /* reomved by Arash: what is this code?? */ 
+	    // Hamed Changes , Creating a valid L1 according to the verified L1_create API
+	    if ((value & 0 b1) == 1)
+		bft[PA_TO_PH_BLOCK(value)].type = PAGE_INFO_TYPE_L2PT;
+	if (((value & 0xFFFF0000) == 0x81200000))
+		*(guest_pt_va + index) = (value & 0xFFFFFBFF);
+	
+	    // END Hamed Changes
 #endif	/*  */
-		    *(guest_pt_va + index) = value;
-	}
-	 printf("vm_0 pagetable:\n");	// DEBUG    
+	     printf("vm_0 pagetable:\n");	// DEBUG    
 	dump_mmu(guest_pt_va);	// DEBUG
 	
 	    /* activate the guest page table */ 
-	    mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, vm_0.config->pa_initial_l1);	// Set TTB0
+	    memory_commit();
+	COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, vm_0.config->pa_initial_l1);	// Set TTB0
 	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-	 
+	memory_commit();
+	  
 	    // Initialize the datastructures with the tyoe for the initial L1
 	    // This shoud be done by MMU_CREATE_L1
 	    dmmu_entry_t * bft = (dmmu_entry_t *) DMMU_BFT_BASE_VA;
@@ -301,11 +307,12 @@ void dump_mmu(addr_t adr)
 		 
 		    // let guest know where it is located
 		    curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[3] =
-		    curr_vm->config->firmware->ptr_phy;
+		    curr_vm->config->firmware->pstart;
 		curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[4] =
-		    curr_vm->config->firmware->ptr_va;
+		    curr_vm->config->firmware->vstart;
 	} while (curr_vm != &vm_0);
-	 cpu_context_initial_set(&curr_vm->mode_states[HC_GM_KERNEL].ctx);
+	 memory_commit();
+	cpu_context_initial_set(&curr_vm->mode_states[HC_GM_KERNEL].ctx);
 }
 
    void start_guest() 

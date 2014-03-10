@@ -83,7 +83,8 @@ extern hc_config minimal_config;
 					   list->page_start) << PAGE_BITS,
 					  list->type);
 		
-		else if (list->type != MLT_NONE) {
+		    //  why we need to map also user memory? (list->type != MLT_USER_RAM) This is mapped into the guest memory itself
+		    else if ((list->type != MLT_NONE)) {
 			j = (list->page_start) >> 8;	/*Get L1 Page index */
 			va_offset = 0;
 			if (list->type == MLT_HYPER_RAM
@@ -195,7 +196,7 @@ extern hc_config minimal_config;
 		
 		    // END Hamed Changes
 		    *(guest_pt_va + index) = value;
-	 }
+	}
 	 
 	    /* activate the guest page table */ 
 	    mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback

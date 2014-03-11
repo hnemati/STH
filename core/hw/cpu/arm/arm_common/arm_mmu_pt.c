@@ -73,9 +73,9 @@ BOOL pt_create_section(addr_t * l1, addr_t va, addr_t pa, uint32_t mem_type)
 	if ((va & ~(MMU_L1_SECTION_MASK)) == 0 && type == MMU_L1_TYPE_FAULT) {
 
 		val = pa | 0x12;	// 0b1--10
-		val |= MMU_AP_USER_RW << MMU_SECTION_AP_SHIFT;
 		// if RAM, turn of XN and enable cache and buffer
 		if (mem_type == MLT_USER_RAM) {
+			val |= MMU_AP_USER_RW << MMU_SECTION_AP_SHIFT;
 			val =
 			    (val & (~0x10)) | 0xC | (HC_DOM_KERNEL <<
 						     MMU_L1_DOMAIN_SHIFT);
@@ -84,6 +84,7 @@ BOOL pt_create_section(addr_t * l1, addr_t va, addr_t pa, uint32_t mem_type)
 			return TRUE;
 		}
 		if (mem_type == MLT_TRUSTED_RAM) {
+			val |= MMU_AP_USER_RW << MMU_SECTION_AP_SHIFT;
 			val =
 			    (val & (~0x10)) | 0xC | (HC_DOM_TRUSTED <<
 						     MMU_L1_DOMAIN_SHIFT);
@@ -92,6 +93,7 @@ BOOL pt_create_section(addr_t * l1, addr_t va, addr_t pa, uint32_t mem_type)
 			return TRUE;
 		}
 		if (mem_type == MLT_HYPER_RAM) {
+			val |= MMU_AP_SUP_RW << MMU_SECTION_AP_SHIFT;
 			val =
 			    (val & (~0x10)) | 0xC | (HC_DOM_DEFAULT <<
 						     MMU_L1_DOMAIN_SHIFT);
@@ -111,8 +113,8 @@ BOOL pt_create_section(addr_t * l1, addr_t va, addr_t pa, uint32_t mem_type)
 /*
  * functions below are used to build page table from data structure
  */
-BOOL pt_create_coarse(addr_t * pt, addr_t va, addr_t pa, uint32_t size,
-		      uint32_t mem_type)
+uint32_t pt_create_coarse(addr_t * pt, addr_t va, addr_t pa, uint32_t size,
+			  uint32_t mem_type)
 {
 	uint32_t *table1 = pt;
 	uint32_t index = MMU_L1_INDEX(va);
@@ -155,7 +157,7 @@ BOOL pt_create_coarse(addr_t * pt, addr_t va, addr_t pa, uint32_t size,
 		/* allocate a new sub-page */
 		table2_pa = pt_get_empty_l2();
 		if (!table2_pa)
-			return FALSE;
+			return 0;
 		table1[index] =
 		    ((uint32_t) (table2_pa) | (domain << MMU_L1_DOMAIN_SHIFT)
 		     | MMU_L1_TYPE_COARSE);
@@ -177,5 +179,5 @@ BOOL pt_create_coarse(addr_t * pt, addr_t va, addr_t pa, uint32_t size,
 		pa += 0x1000;
 		count--;
 	}
-	return TRUE;
+	return table2_pa;
 }

@@ -50,7 +50,7 @@ extern hc_config minimal_config;
 
 #endif	/*  */
 /*****************************/ 
-void memory_init() 
+void memory_init() 
 {
 	
 	    /*Setup heap pointer */ 
@@ -215,14 +215,7 @@ extern hc_config minimal_config;
 		value = *(flpt_va + index);
 		*(guest_pt_va + index) = value;
 	}
-	
-#define DEBUG_PG_CONTENT
-#ifdef DEBUG_PG_CONTENT
-	    for (index = 0; index < 4096; index++) {
-		if (*(guest_pt_va + index) != 0x0)
-			printf("add %x %x \n", (index << 20), *(guest_pt_va + index));	//(flpt_va + index)
-	}
-	
+	 
 #endif	/*  */
 	    /* activate the guest page table */ 
 	    mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
@@ -264,7 +257,14 @@ extern hc_config minimal_config;
 	 mem_mmu_tlb_invalidate_all(TRUE, TRUE);
 	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
 	mem_cache_set_enable(TRUE);
-	  
+	 
+#define DEBUG_PG_CONTENT
+#ifdef DEBUG_PG_CONTENT
+	    for (index = 0; index < 4096; index++) {
+		if (*(guest_pt_va + index) != 0x0)
+			printf("add %x %x \n", index, *(guest_pt_va + index));	//(flpt_va + index)
+	}
+	
 	    /* END GUANCIO CHANGES */ 
 	    
 #endif	/*  */

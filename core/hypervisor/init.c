@@ -4,7 +4,8 @@
 #include "mmu.h"
 #include "hw_core_mem.h"
 #include "dmmu.h"
-  
+ 
+//#define DEBUG_PG_CONTENT
 /*
  * Function prototypes
  */ 
@@ -215,8 +216,7 @@ void memory_init()
 		value = *(flpt_va + index);
 		*(guest_pt_va + index) = value;
 	}
-	 
-#endif	/*  */
+	  
 	    /* activate the guest page table */ 
 	    mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
 	COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, vm_0.config->pa_initial_l1);	// Set TTB0
@@ -258,13 +258,13 @@ void memory_init()
 	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
 	mem_cache_set_enable(TRUE);
 	 
-#define DEBUG_PG_CONTENT
 #ifdef DEBUG_PG_CONTENT
 	    for (index = 0; index < 4096; index++) {
 		if (*(guest_pt_va + index) != 0x0)
 			printf("add %x %x \n", index, *(guest_pt_va + index));	//(flpt_va + index)
 	}
 	
+#endif	/*  */
 	    /* END GUANCIO CHANGES */ 
 	    
 #endif	/*  */

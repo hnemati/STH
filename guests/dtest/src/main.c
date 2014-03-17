@@ -1031,4 +1031,4 @@ CMD_CREATE_L1_PT, CMD_SWITCH_ACTIVE_L1, CMD_FREE_L1
 /*Each guest must provide a handler rpc*/ 
 void handler_rpc(unsigned callNum, void *params) 
 {
- } 
+ }

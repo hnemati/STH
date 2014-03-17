@@ -55,7 +55,7 @@
  * Guest configuration structure
  */ 
     hc_config minimal_config = {
-	.guest_entry_point = (0xc0000000), .guest_modes = {
+	.guest_entry_offset = 0, .guest_modes = {
 	&gm_trusted, &gm_kernel, &gm_task, &gm_interrupt},
 	    .reserved_va_for_pt_access_start =
 	    0x0, .reserved_va_for_pt_access_end = 0x004fffff, 

@@ -9,7 +9,7 @@
 	 if (index < 0 || index >= guests_db.count)
 		return NULL;
 	guest = &guests_db.guests[index];
-	 if (guest->size <= 0)
+	 if (guest->psize <= 0)
 		return NULL;
 	return guest;
 }

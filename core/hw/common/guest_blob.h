@@ -16,6 +16,7 @@
 	addr_t vstart;
 	size_t psize;
 	size_t fwsize;
+	size_t offset;
 };
  struct guests_database {
 	uint32_t count;

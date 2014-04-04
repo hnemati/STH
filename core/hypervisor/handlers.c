@@ -122,7 +122,8 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 			return;
 
 		case HYPERCALL_NEW_PGD:
-			hypercall_new_pgd((uint32_t *) param0);
+			//hypercall_new_pgd((uint32_t*)param0);
+			hypercall_dyn_new_pgd((uint32_t *) param0);
 			return;
 		case HYPERCALL_FREE_PGD:
 			hypercall_free_pgd((uint32_t *) param0);

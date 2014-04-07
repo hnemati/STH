@@ -118,7 +118,8 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 
 			/*Page table operations */
 		case HYPERCALL_SWITCH_MM:
-			hypercall_switch_mm(param0, param1);
+			hypercall_dyn_switch_mm(param0, param1);
+			//hypercall_switch_mm(param0, param1);
 			return;
 
 		case HYPERCALL_NEW_PGD:

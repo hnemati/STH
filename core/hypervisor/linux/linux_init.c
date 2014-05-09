@@ -161,6 +161,7 @@ addr_t linux_pt_get_empty_l2()
 
 void linux_init_dmmu()
 {
+	uint32_t error;
 	uint32_t sect_attrs, small_attrs, page_attrs, table2_idx, i;
 	addr_t table2_pa;
 	addr_t guest_vstart = curr_vm->config->firmware->vstart;
@@ -197,9 +198,18 @@ void linux_init_dmmu()
 	addr_t reserved_l2_pts_pa =
 	    curr_vm->config->pa_initial_l2_offset + guest_pstart;
 	/*Set whole 1MB reserved address region in Linux as L2_pt */
-	for (i = reserved_l2_pts_pa; i < reserved_l2_pts_pa + SECTION_SIZE;
+	addr_t reserved_l2_pts_va =
+	    mmu_guest_pa_to_va(reserved_l2_pts_pa, curr_vm->config);
+
+	/*Memsetting the reserved L2 pages to 0
+	 *There is alot of garbage occupying the L2 page addressin real HW
+	 *Only using 0x10000 and not whole MB   */
+	memset((addr_t *) reserved_l2_pts_va, 0, 0x10000);
+
+	for (i = reserved_l2_pts_pa; i < reserved_l2_pts_pa + 0x10000;
 	     i += PAGE_SIZE) {
-		dmmu_create_L2_pt(i);
+		if ((error = dmmu_create_L2_pt(i)))
+			printf("\n\tCould not map L2 PT: %d\n", error);
 	}
 
 	/*L1PT attrs */
@@ -214,9 +224,11 @@ void linux_init_dmmu()
 	/*Map last 16MB as coarse */
 	for (; offset + SECTION_SIZE <= guest_psize; offset += SECTION_SIZE) {
 		table2_pa = linux_pt_get_empty_l2();	/*pointer to private L2PTs in guest */
-		if (dmmu_l1_pt_map
-		    ((addr_t) guest_vstart + offset, table2_pa, page_attrs))
-			printf("\n\tCould not map L1 PT in set PMD\n");
+		if ((error =
+		     dmmu_l1_pt_map((addr_t) guest_vstart + offset, table2_pa,
+				    page_attrs)))
+			printf("\n\tCould not map L1 PT in set PMD: %d\n",
+			       error);
 
 		/*Get index of physical L2PT */
 		table2_idx =

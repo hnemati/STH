@@ -18,7 +18,8 @@ include ../../templates/make/toolchain.inc
 include ../../templates/make/generic.inc
 include ../../templates/make/application.inc
 
-
+#Override 0s as it will destroy the crypto functions...
+CFLAGS += -O0
 
 
 # force update when something changes

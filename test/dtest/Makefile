@@ -5,6 +5,9 @@ ALL_TESTS +=
 
 all: $(STABLE_TESTS)
 
+clean:
+	cd ../..; make clean
+
 $(ALL_TESTS):%:
 	echo $@
 	cd ../../guests/dtest/; make clean

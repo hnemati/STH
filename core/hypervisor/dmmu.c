@@ -398,8 +398,10 @@ uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
 			    (sec_idx);
 			dmmu_entry_t *bft_entry =
 			    get_bft_entry_by_block_idx(ph_block);
-			if ((bft_entry->refcnt == MAX_30BIT)
-			    || (bft_entry->type != PAGE_INFO_TYPE_DATA)) {
+			if ((ap == 3)
+			    &&
+			    ((bft_entry->refcnt == MAX_30BIT
+			      || (bft_entry->type != PAGE_INFO_TYPE_DATA)))) {
 				sanity_check = FALSE;
 			}
 		}

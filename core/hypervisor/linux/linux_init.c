@@ -153,8 +153,14 @@ addr_t linux_pt_get_empty_l2()
 	} else {
 		addr_t index = linux_l2_index_p * 0x400;
 		memset((uint32_t *) ((uint32_t) va_l2_pt + index), 0, 0x400);
+		uint32_t l2_base_add = (uint32_t) (pa_l2_pt + index);
+
+		// assuming that va_l2_pt is 4kb aligned
 		linux_l2_index_p++;
-		return (uint32_t) (pa_l2_pt + index);
+		if ((linux_l2_index_p & 0x2) == 0x2)
+			linux_l2_index_p = (linux_l2_index_p & (~0x3)) + 4;
+
+		return l2_base_add;
 	}
 
 }
@@ -201,8 +207,8 @@ void linux_init_dmmu()
 	addr_t reserved_l2_pts_va =
 	    mmu_guest_pa_to_va(reserved_l2_pts_pa, curr_vm->config);
 
-	/*Memsetting the reserved L2 pages to 0
-	 *There is alot of garbage occupying the L2 page addressin real HW
+	/*Memory setting the reserved L2 pages to 0
+	 *There is a lot of garbage occupying the L2 page address in real HW
 	 *Only using 0x10000 and not whole MB   */
 	memset((addr_t *) reserved_l2_pts_va, 0, 0x10000);
 

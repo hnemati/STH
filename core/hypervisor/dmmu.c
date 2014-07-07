@@ -98,8 +98,12 @@ BOOL l1PT_checker(uint32_t l1_desc)
 	dmmu_entry_t *bft_entry_pt =
 	    get_bft_entry_by_block_idx(PT_PA_TO_PH_BLOCK(pt->addr));
 
-	uint32_t err_flag = 0;	// to be set when one of the pages in the section is not a data page
-	if (bft_entry_pt->type != PAGE_INFO_TYPE_L2PT) {
+	uint32_t err_flag = 0;
+
+	if ((pt->addr & 0x2) == 2) {
+		err_flag = ERR_MMU_L2_BASE_OUT_OF_RANGE;
+	} else if (bft_entry_pt->type != PAGE_INFO_TYPE_L2PT) {
+
 		err_flag = ERR_MMU_IS_NOT_L2_PT;
 	} else if (bft_entry_pt->refcnt >= (MAX_30BIT - 4096)) {
 		err_flag = ERR_MMU_REF_OVERFLOW;
@@ -302,6 +306,7 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 		    (l1Desc_validityChecker_dispatcher
 		     (l1_type, l1_desc, l1_base_pa_add))) {
 			sanity_check = FALSE;
+			printf("failed to validate the entry %d \n", l1_idx);
 		}
 	}
 	if (!sanity_check)
@@ -559,7 +564,7 @@ void create_L2_refs_update(addr_t l2_base_pa_add)
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	int l2_idx;
-	for (l2_idx = 0; l2_idx < 1024; l2_idx++) {
+	for (l2_idx = 0; l2_idx < 512; l2_idx++) {
 		l2_desc_pa_add = L2_DESC_PA(l2_base_pa_add, l2_idx);	// base address is 4KB aligned
 		l2_desc_va_add =
 		    mmu_guest_pa_to_va(l2_desc_pa_add, curr_vm->config);
@@ -627,7 +632,7 @@ uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 		return ERR_MMU_REFERENCED;
 
 	uint32_t sanity_checker = TRUE;
-	for (l2_idx = 0; l2_idx < 1024; l2_idx++) {
+	for (l2_idx = 0; l2_idx < 512; l2_idx++) {
 		l2_desc_pa_add = L2_DESC_PA(l2_base_pa_add, l2_idx);	// base address is 4KB aligned
 		l2_desc_va_add =
 		    mmu_guest_pa_to_va(l2_desc_pa_add, curr_vm->config);
@@ -707,6 +712,7 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	l1_desc_va_add =
 	    mmu_guest_pa_to_va(l1_desc_pa_add, (curr_vm->config));
 	l1_desc = *((uint32_t *) l1_desc_va_add);
+
 	if (L1_DESC_PXN(attrs))
 		return ERR_MMU_XN_BIT_IS_ON;
 	//checks if the L1 entry is unmapped or not
@@ -718,6 +724,11 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	bft_entry->refcnt += 1;
 	// Updating memory with the new descriptor
 	l1_desc = CREATE_L1_PT_DESC(l2_base_pa_add, attrs);
+
+	l1_pt_t *pt = (l1_pt_t *) (&l1_desc);
+	if ((pt->addr & 0x2) == 2)
+		return ERR_MMU_L2_BASE_OUT_OF_RANGE;
+
 	*((uint32_t *) l1_desc_va_add) = l1_desc;
 
 	isb();
@@ -830,6 +841,9 @@ int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 	l2_desc = *((uint32_t *) l2_desc_va_add);
 	l2_type = l2_desc & DESC_TYPE_MASK;
 
+	if ((l2_type != 0x2) && (l2_type != 0x3))
+		return 0;
+
 	l1_small_t *pg_desc = (l1_small_t *) (&l2_desc);
 	dmmu_entry_t *bft_entry_pg =
 	    get_bft_entry_by_block_idx(PA_TO_PH_BLOCK
@@ -884,7 +898,7 @@ int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 		return ERR_MMU_REFERENCE_L2;
 
 	//updating the entries of L2
-	for (l2_idx = 0; l2_idx < 1024; l2_idx++) {
+	for (l2_idx = 0; l2_idx < 512; l2_idx++) {
 		l2_desc_pa_add = L2_DESC_PA(l2_base_pa_add, l2_idx);	// base address is 4KB aligned
 		l2_desc_va_add =
 		    mmu_guest_pa_to_va(l2_desc_pa_add, curr_vm->config);

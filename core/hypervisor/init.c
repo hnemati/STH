@@ -6,6 +6,7 @@
 #include "dmmu.h"
  
 //#define DEBUG_PG_CONTENT
+#define DEBUG_L1_PG_TYPE
 /*
  * Function prototypes
  */ 
@@ -282,13 +283,16 @@ void dump_mmu(addr_t adr)
 	isb();
 	memory_commit();
 	 
-	    // Initialize the datastructures with the type for the initial L1
-	    // This should be done by MMU_CREATE_L1
-	    bft[PA_TO_PH_BLOCK(guest_pt_pa) + 0].type = PAGE_INFO_TYPE_L1PT;
-	bft[PA_TO_PH_BLOCK(guest_pt_pa) + 1].type = PAGE_INFO_TYPE_L1PT;
-	bft[PA_TO_PH_BLOCK(guest_pt_pa) + 2].type = PAGE_INFO_TYPE_L1PT;
-	bft[PA_TO_PH_BLOCK(guest_pt_pa) + 3].type = PAGE_INFO_TYPE_L1PT;
-	  
+	    // Calling the create_L1_pt API to check the correctness of the L1 content and to change the page table type to 1
+	    dmmu_create_L1_pt(guest_pt_pa);
+	
+#ifdef DEBUG_L1_PG_TYPE
+	    uint32_t index;
+	for (index = 0; index < 4; index++)
+		printf("Initial L1 page table's page type:%x \n",
+			bft[PA_TO_PH_BLOCK(guest_pt_pa) + index].type);
+	
+#endif	/*  */
 	    // Initialize the datastructures with the type for the initial L1
 	    // create the attribute that allow the guest to read/write/execute
 	    uint32_t attrs;

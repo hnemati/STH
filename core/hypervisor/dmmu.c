@@ -513,7 +513,8 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
  -------------------------------------------------------------------*/
 BOOL l2Pt_desc_ap(addr_t l2_base_pa_add, l1_small_t * pg_desc)
 {
-	uint32_t ap = ((pg_desc->ap_3b) << 2) | (pg_desc->ap_0_1bs);
+	uint32_t ap =
+	    ((uint32_t) (pg_desc->ap_3b) << 2) | (pg_desc->ap_0_1bs);
 	dmmu_entry_t *bft_entry =
 	    get_bft_entry_by_block_idx(PA_TO_PH_BLOCK
 				       (START_PA_OF_SPT(pg_desc)));
@@ -527,7 +528,7 @@ BOOL l2Pt_desc_ap(addr_t l2_base_pa_add, l1_small_t * pg_desc)
 			return FALSE;
 		// TODO: Check also that the guest can not read into the hypervisor memory
 		// TODO: in general we need also to prevent that it can read from the trusted component, thus identifying a more fine grade control
-		//               e.g. using domain
+		//           e.g. using domain
 		// TODO: e.g. if you can read in user mode and the domain is the guest user domain or kernel domain then the pa must be in the guest memory
 		if (!guest_pa_range_checker
 		    (START_PA_OF_SPT(pg_desc), PAGE_SIZE))
@@ -575,7 +576,8 @@ void create_L2_refs_update(addr_t l2_base_pa_add)
 		l1_small_t *pg_desc = (l1_small_t *) (&l2_desc);
 		if ((l2_type == 2) || (l2_type == 3)) {
 			uint32_t ap =
-			    ((pg_desc->ap_3b) << 2) | (pg_desc->ap_0_1bs);
+			    ((uint32_t) (pg_desc->ap_3b) << 2) | (pg_desc->
+								  ap_0_1bs);
 			uint32_t ph_block =
 			    PA_TO_PH_BLOCK(START_PA_OF_SPT(pg_desc));
 			dmmu_entry_t *bft_entry =

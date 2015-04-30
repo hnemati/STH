@@ -101,7 +101,7 @@ void dump_mmu(addr_t adr)
 	 cpu_get_type(&type, &model);
 	 
 	    /* Start with simple access control
-	     * Only seperation between hypervisor and user address space
+	     * Only separation between hypervisor and user address space
 	     *
 	     * Here hypervisor already runs in virtual address since boot.S, now just setup guests
 	     */ 
@@ -247,7 +247,7 @@ void dump_mmu(addr_t adr)
 	 printf("HV pagetable after guests initialization:\n");	// DEBUG
 //    dump_mmu(flpt_va); // DEBUG
 	
-	    // We pin the L2s that can be created in the 32KB are of slpt_va
+	    // We pin the L2s that can be created in the 32KB area of slpt_va
 	    dmmu_entry_t * bft = (dmmu_entry_t *) DMMU_BFT_BASE_VA;
 	for (i = 0; i * 4096 < 0x8000; i++) {
 		bft[PA_TO_PH_BLOCK((uint32_t) GET_PHYS(slpt_va) + i * 4096)].

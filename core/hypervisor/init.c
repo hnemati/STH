@@ -240,9 +240,7 @@ void dump_mmu(addr_t adr)
 		    offset = ((va >> MMU_L1_SECTION_SHIFT) * 4);
 		pmd = (uint32_t *) ((uint32_t) flpt_va + offset);
 		COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, pmd);
-		
-		    // printf("%x -> %x\n", va, pa); // DEBUG
-	}
+	}
 	 memory_commit();
 	 printf("HV pagetable after guests initialization:\n");	// DEBUG
 //    dump_mmu(flpt_va); // DEBUG
@@ -284,8 +282,15 @@ void dump_mmu(addr_t adr)
 	memory_commit();
 	 
 	    // Calling the create_L1_pt API to check the correctness of the L1 content and to change the page table type to 1
-	    dmmu_create_L1_pt(guest_pt_pa);
-	
+	    uint32_t res = dmmu_create_L1_pt(guest_pt_pa);
+	if (res != SUCCESS_MMU) {
+		printf
+		    ("XXXX We failed to create the initial PT with error %d XXXX\n",
+		     res);
+		while (1) {
+		}
+	}
+	 
 #ifdef DEBUG_L1_PG_TYPE
 	    uint32_t index;
 	for (index = 0; index < 4; index++)
@@ -303,8 +308,7 @@ void dump_mmu(addr_t adr)
 	    linux_init_dmmu();
 	 
 #else	/*  */
-	    printf("I reached this point");
-	attrs = 0x12;		// 0b1--10
+	    attrs = 0x12;	// 0b1--10
 	attrs |= MMU_AP_USER_RW << MMU_SECTION_AP_SHIFT;
 	attrs =
 	    (attrs & (~0x10)) | 0xC | (HC_DOM_KERNEL << MMU_L1_DOMAIN_SHIFT);
@@ -313,8 +317,12 @@ void dump_mmu(addr_t adr)
 	    uint32_t offset;
 	for (offset = 0; offset + SECTION_SIZE <= guest_psize;
 	      offset += SECTION_SIZE) {
-		dmmu_map_L1_section(guest_vstart + offset,
-				     guest_pstart + offset, attrs);
+		printf("-- creating initial mapping of %x to %x\n",
+			guest_vstart + offset, guest_pstart + offset);
+		res =
+		    dmmu_map_L1_section(guest_vstart + offset,
+					guest_pstart + offset, attrs);
+		printf("-- result %d\n", res);
 	}
 	 
 #endif	/*  */

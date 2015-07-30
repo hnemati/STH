@@ -916,11 +916,9 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 	    mmu_guest_pa_to_va(l2_desc_pa_add, (curr_vm->config));
 	l2_desc = *((uint32_t *) l2_desc_va_add);
 
-	uint32_t new_l2_desc = CREATE_L2_DESC(page_pa_add, attrs);
-
-	uint32_t sanity_check = l2PT_checker(l2_base_pa_add, new_l2_desc);
-	if (sanity_check != SUCCESS_MMU)
-		return sanity_check;
+	//checks if the L2 entry is unmapped or not
+	if ((l2_desc & DESC_TYPE_MASK) != 0)
+		return ERR_MMU_PT_NOT_UNMAPPED;
 
 	// Finding the corresponding entry for the page_pa_add and l2_base_pa_add in BFT
 	uint32_t ph_block_pg = PA_TO_PH_BLOCK(page_pa_add);
@@ -932,9 +930,11 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 	if (bft_entry_pt->type != PAGE_INFO_TYPE_L2PT)
 		return ERR_MMU_IS_NOT_L2_PT;
 
-	//checks if the L2 entry is unmapped or not
-	if ((l2_desc & DESC_TYPE_MASK) != 0)
-		return ERR_MMU_PT_NOT_UNMAPPED;
+	uint32_t new_l2_desc = CREATE_L2_DESC(page_pa_add, attrs);
+
+	uint32_t sanity_check = l2PT_checker(l2_base_pa_add, new_l2_desc);
+	if (sanity_check != SUCCESS_MMU)
+		return sanity_check;
 
 	//Updating page reference counter
 	l2_small_t *pg_desc = (l2_small_t *) (&new_l2_desc);

@@ -1,13 +1,23 @@
+/*Each guest must provide a handler rpc*/
+void handler_rpc(unsigned callNum, void *params)
+{
+
+}
 
 #include <lib.h>
 #include <types.h>
 
 #include "dtest.h"
 
-//the initial memory layout is something like
-// 0xc0i00000 mapped to base_pa+i with i in [0..5]
-// with the exception of i=2, where the initial L1 is created
-// moreover, the region i=2 and i=3 are considered to be always cacheable
+//The initial memory layout of the dtest guest is something like 0xc0i00000
+//mapped to base_pa+i, with i in [0..5] (with the exception of i=2, where the
+//initial L1 is created).
+//Moreover, the regions i=2 and i=3 are considered to be always cacheable.
+//Each function consists of a test suite, which is executed after the guest is
+//loaded by the hypervisor. At compile time, you can choose which test suite
+//you want to run by making the hypervisor with "make TEST_NAME=TEST_UNDEFINED",
+//where you switch "TEST_UNDEFINED" for the name of the test you want to execute
+//Do not forget to execute the command "make clean" between changing tests.
 
 void test_map_l1_section()
 {
@@ -481,6 +491,9 @@ void test_l2_map_entry()
 
 void test_l2_unmap_entry()
 {
+	char *test_name = "L2 PAGE TABLE UNMAP ENTRY";
+	printf("Test suite: %s\n", test_name);
+
 	// idx is the index of a entry we want to map pga into
 	uint32_t pa, va, idx, pga, attrs, res, desc;
 	int j, t_id = 0;
@@ -489,42 +502,43 @@ void test_l2_unmap_entry()
 	attrs |= MMU_AP_USER_RW << MMU_PT_AP_SHIFT;
 
 	// Creating an L2 to map
-	va = (va_base | (uint32_t) 0x100000);
+	va = (va_base | (uint32_t) 0x300000);
 	pa = va2pa(va);
-	desc = (pa & 0xffff0000) | 0x22;	// self referencing with read-only access permission
+	desc = (pa & 0xffff0000) | 0x22 | 0x8;	// self referencing with read-only access permission
 	// The first entry is not mapped
 	for (j = 1; j < 1024; j++)
 		l2[j] = ((uint32_t) desc);
 	memcpy((void *)va, l2, sizeof l2);
 	ISSUE_DMMU_HYPERCALL(CMD_UNMAP_L1_PT_ENTRY, va, 0, 0);
 	res = ISSUE_DMMU_HYPERCALL(CMD_CREATE_L2_PT, pa, 0, 0);
-	expect(t_id, "Successful creation of a new L2", SUCCESS, res);
-	// end of L2 page table creation
+	expect(t_id, "Creating a new L2", SUCCESS, res);
+	//#0: L2 base address can not be 0x0, since it is reserved by the hypervisor
+	//to access the guest page tables.
 
-	// #0: L2 base address can not be 0x0, since it is reserved by the hypervisor to access the guest page tables
 	pa = 0x0;
 	res = ISSUE_DMMU_HYPERCALL(CMD_UNMAP_L2_ENTRY, pa, idx, 0);
 	expect(t_id,
 	       "Unmapping an entry of an invalid L2 for which the base address is outside the allowed range",
 	       ERR_MMU_OUT_OF_RANGE_PA, res);
 
-	// #1: The guest is trying to unmap entry of a data page
-	// This test should fail because the l2 base address is not pointing to a valid page table(L2)
-	pa = va2pa(va_base | (uint32_t) 0x110000);
+	//#1: We are trying to unmap entry of a data page.
+	//This test should fail because the L2 base address is not pointing to a valid page table(L2)
+	pa = va2pa(va_base | (uint32_t) 0x310000);
 	res = ISSUE_DMMU_HYPERCALL(CMD_UNMAP_L2_ENTRY, pa, idx, 0);
 	expect(++t_id,
 	       "Unmapping an entry of an invalid L2, page type associated with the physical address is not L2-page table",
 	       ERR_MMU_IS_NOT_L2_PT, res);
 
-	// #2: The entry guest is trying to unmap an entry that is not mapped
-	// This test should succeed
+	//#2: The entry guest is trying to unmap an entry that is not mapped
+	//This test should succeed
 	idx = 0x0;
-	pa = va2pa((va_base | (uint32_t) 0x100000));
+	pa = va2pa((va_base | (uint32_t) 0x300000));
 	res = ISSUE_DMMU_HYPERCALL(CMD_UNMAP_L2_ENTRY, pa, idx, 0);
-	expect(++t_id, "Unmapping an unmapped entry of an L2", SUCCESS, res);
+	expect(++t_id, "Unmapping an unmapped entry of an L2 page table",
+	       SUCCESS, res);
 
-	// #3: all the parameters are well defined
-	// This test should succeed but the reference counter should remain untouched
+	//#3: All the parameters are well defined
+	//This test should succeed but the reference counter should remain untouched
 	idx = 0x0;
 	attrs = 0;
 	attrs |= MMU_AP_USER_RO << MMU_PT_AP_SHIFT;
@@ -532,13 +546,14 @@ void test_l2_unmap_entry()
 
 	res = ISSUE_DMMU_HYPERCALL(CMD_UNMAP_L2_ENTRY, pa, idx, 0);
 	expect(++t_id,
-	       "Unmapping an entry of L2 which points to the L2 itself",
+	       "Unmapping an entry of L2 page table which points to the L2 page table itself",
 	       SUCCESS, res);
 
-	// #4: this test is a successful attempt
+	//#4: This test is a successful attempt
 	idx = 0xc2;
 	res = ISSUE_DMMU_HYPERCALL(CMD_UNMAP_L2_ENTRY, pa, idx, 0);
-	expect(++t_id, "Unmapping an entry of L2 which points to a data page",
+	expect(++t_id,
+	       "Unmapping an entry of L2 page table which points to a data page",
 	       SUCCESS, res);
 }
 
@@ -1108,10 +1123,4 @@ void _main()
 	printf("no test has been specified\n");
 #endif
 	printf("TEST COMPLETED\n");
-}
-
-/*Each guest must provide a handler rpc*/
-void handler_rpc(unsigned callNum, void *params)
-{
-
 }

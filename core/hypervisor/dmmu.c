@@ -177,7 +177,7 @@ uint32_t l1Sec_checker(uint32_t l1_desc, addr_t l1_base_pa_add)
 		err_flag = ERR_MMU_AP_UNSUPPORTED;
 	// TODO: Check also that the guest can not read into the hypervisor memory
 	// TODO: in general we need also to prevent that it can read from the trusted component, thus identifying a more fine grade control
-	//               e.g. using domain
+	//             e.g. using domain
 	// TODO: e.g. if you can read in user mode and the domain is the guest user domain or kernel domain then the pa must be in the guest memory
 	else if (ap == 3) {
 		uint32_t max_kernel_ac =
@@ -400,15 +400,6 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	if (l1_base_pa_add != (l1_base_pa_add & 0xFFFFC000))
 		return ERR_MMU_L1_BASE_IS_NOT_16KB_ALIGNED;
 
-	// You can not free the current L1
-	COP_READ(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0,
-		 (uint32_t) curr_l1_base_pa_add);
-	if ((curr_l1_base_pa_add & 0xFFFFC000) ==
-	    (l1_base_pa_add & 0xFFFFC000))
-		return ERR_MMU_FREE_ACTIVE_L1;
-
-	ph_block = PA_TO_PH_BLOCK(l1_base_pa_add);
-
 	if (get_bft_entry_by_block_idx(ph_block)->type != PAGE_INFO_TYPE_L1PT
 	    || get_bft_entry_by_block_idx(ph_block + 1)->type !=
 	    PAGE_INFO_TYPE_L1PT
@@ -418,6 +409,15 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	    PAGE_INFO_TYPE_L1PT) {
 		return ERR_MMU_IS_NOT_L1_PT;
 	}
+	// You can not free the current L1
+	COP_READ(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0,
+		 (uint32_t) curr_l1_base_pa_add);
+	if ((curr_l1_base_pa_add & 0xFFFFC000) ==
+	    (l1_base_pa_add & 0xFFFFC000))
+		return ERR_MMU_FREE_ACTIVE_L1;
+
+	ph_block = PA_TO_PH_BLOCK(l1_base_pa_add);
+
 	//unmap_L1_pt_ref_update
 	for (l1_idx = 0; l1_idx < 4096; l1_idx++) {
 		uint32_t l1_desc_pa_add = L1_IDX_TO_PA(l1_base_pa_add, l1_idx);	// base address is 16KB aligned
@@ -550,16 +550,6 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	uint32_t l1_desc;
 	uint32_t page_desc;
 
-	// HAL_VIRT_START is usually 0xf0000000, where the hypervisor code/data structures reside
-	/*Check that the guest does not override the virtual addresses used by the hypervisor */
-#if 0
-	if (va >= HAL_VIRT_START)
-		return ERR_MMU_RESERVED_VA;
-
-	if (va >= curr_vm->config->reserved_va_for_pt_access_start
-	    && va <= curr_vm->config->reserved_va_for_pt_access_end)
-		return ERR_MMU_RESERVED_VA;
-#else
 	// user the master page table to discover if the va is reserved
 	// WARNING: we can currently reserve only blocks of 1MB and non single blocks
 	l1_idx = VA_TO_L1_IDX(va);
@@ -567,7 +557,7 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	if (L1_TYPE(l1_desc) != UNMAPPED_ENTRY) {
 		return ERR_MMU_RESERVED_VA;
 	}
-#endif
+
 	if (!guest_pa_range_checker(l2_base_pa_add, PAGE_SIZE))
 		return ERR_MMU_OUT_OF_RANGE_PA;
 
@@ -703,7 +693,7 @@ uint32_t l2Pt_desc_ap(addr_t l2_base_pa_add, l2_small_t * pg_desc)
 			return ERR_MMU_PH_BLOCK_NOT_WRITABLE;
 		// TODO: Check also that the guest can not read into the hypervisor memory
 		// TODO: in general we need also to prevent that it can read from the trusted component, thus identifying a more fine grade control
-		//               e.g. using domain
+		//           e.g. using domain
 		// TODO: e.g. if you can read in user mode and the domain is the guest user domain or kernel domain then the pa must be in the guest memory
 		if (!guest_pa_range_checker
 		    (START_PA_OF_SPT(pg_desc), PAGE_SIZE))
@@ -914,11 +904,6 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 	l2_desc_pa_add = L2_IDX_TO_PA(l2_base_pa_add, l2_idx);
 	l2_desc_va_add =
 	    mmu_guest_pa_to_va(l2_desc_pa_add, (curr_vm->config));
-	l2_desc = *((uint32_t *) l2_desc_va_add);
-
-	//checks if the L2 entry is unmapped or not
-	if ((l2_desc & DESC_TYPE_MASK) != 0)
-		return ERR_MMU_PT_NOT_UNMAPPED;
 
 	// Finding the corresponding entry for the page_pa_add and l2_base_pa_add in BFT
 	uint32_t ph_block_pg = PA_TO_PH_BLOCK(page_pa_add);
@@ -929,6 +914,11 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 
 	if (bft_entry_pt->type != PAGE_INFO_TYPE_L2PT)
 		return ERR_MMU_IS_NOT_L2_PT;
+
+	l2_desc = *((uint32_t *) l2_desc_va_add);
+	//checks if the L2 entry is unmapped or not
+	if ((l2_desc & DESC_TYPE_MASK) != 0)
+		return ERR_MMU_PT_NOT_UNMAPPED;
 
 	uint32_t new_l2_desc = CREATE_L2_DESC(page_pa_add, attrs);
 

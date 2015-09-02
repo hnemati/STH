@@ -1,0 +1,42 @@
+
+BUILDING
+========
+
+STRUCTURE
+---------
+The directory structure is as following:
+
+* core                  Hypervisor code
+* doc                   Documentation
+* drivers               A short set of hardware drivers
+* guests                Guests to be used with the hypervisor
+* library               Shared code
+* simulation            Simulation models and binaries
+* templates             Hardware & script templates
+* test                  Unit tests
+* utils                 misc. utilities
+
+
+COMPILING
+---------
+Assuming you have followed our START document and done a proper setup, just do
+
+    make
+
+This will use the targets defined in the file "target" (created during setup).
+
+RUNNING
+-------
+Assuming you can run the target from your machine (e.g. a simulated target), dl
+
+    make sim
+
+This will create a number of files in core/build:
+ * sth_PLATFORM.elf         Hypervisor ELF binary
+ * sth_PLATFORM.bin         Hypervisor raw binary
+ * sth_PLATFORM.asm         Hypervisor binary dissambled
+ * sth_PLATFORM.img         Hypervisor image for use with u-boot etc
+ 
+The above files do not include the guests. The following ones include guests binaries:
+ * sth_beagleboard.fw       Hypervisor raw binary with the guest attached at the end
+ * sth_beagleboard.fw.img   Same as above, in image format

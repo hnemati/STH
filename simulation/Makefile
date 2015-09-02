@@ -1,15 +1,22 @@
 include ../target
 
-ifeq ($(SIMULATION_OVP),1)
-		SUBDIRS = ovp_integratorCP ovp_arm9 generic_a8
-endif
+DIRS = qemu
+DIRS_OPTIONAL = ovp_integratorCP ovp_arm9 generic_a8
+
 
 all:
-	 set -e; for d in $(SUBDIRS); do $(MAKE) -C $$d ; done
-
+	@echo Nothing to do for simulation after setup
 
 clean:
-	 for d in $(SUBDIRS); do $(MAKE) clean -C $$d ; done
+	@echo Nothing to clean in simulation folder
 
 test:
-	echo no tests for simulation yet
+	@echo Nothing to test in the simulation folder	
+
+setup: build
+	 -for d in $(DIRS_OPTIONAL); do $(MAKE) -C $$d ; done
+	 set -e; for d in $(DIRS); do $(MAKE) -C $$d ; done
+
+build:
+	mkdir build
+

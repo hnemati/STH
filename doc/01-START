@@ -1,0 +1,36 @@
+
+START HERE
+==========
+
+Read this file first!
+
+
+
+SYSTEM REQUIREMENTS
+-------------------
+
+You will need
+ * A 64-bit Intel or AMD machine
+ * Ubuntu 14.10 or better
+
+
+SETUP
+-----
+
+To set up the project (you only need to do this once):
+
+1. Install git, DTS tools and GCC for native & target architectures
+
+    sudo apt-get install git gcc device-tree-compiler bc build-essential gcc-arm-none-eabi
+
+2. If you want, you can also install these optional packages
+
+    sudo apt-get install cscope
+    sudo apt-get install gitk
+
+3. If you are using Imperas OVP for simulation, you should install that separately.
+
+
+4. Run setup:
+    make setup
+

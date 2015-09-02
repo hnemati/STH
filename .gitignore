@@ -13,11 +13,10 @@ build
 sth.patch
 ovp_*.data
 *.cpio
-zImage
-zImage.bin
 .cproject
 *.sh
 *.to
 *.o
 *.ho
 .svn
+target

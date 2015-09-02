@@ -14,6 +14,7 @@ clean:
 
 setup: target clean
 	make -C simulation setup	
+	make -C guests setup	
 
 target:
 	echo "# -*- Makefile -*-" > target

@@ -24,6 +24,8 @@ Assuming you have followed our START document and done a proper setup, just do
     make
 
 This will use the targets defined in the file "target" (created during setup).
+Note that you may need to repeat "make setup" if you change your target.
+
 
 RUNNING
 -------

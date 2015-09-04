@@ -84,7 +84,7 @@ BOOL guest_pa_range_checker(pa, size)
 	uint32_t guest_end_pa =
 	    curr_vm->config->firmware->pstart +
 	    curr_vm->config->firmware->psize + SECTION_SIZE;
-	if (!(pa >= (guest_start_pa)) && (pa + size <= guest_end_pa))
+	if (!((pa >= (guest_start_pa)) && (pa + size <= guest_end_pa)))
 		return FALSE;
 	return TRUE;
 }

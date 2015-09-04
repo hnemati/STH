@@ -9,12 +9,6 @@
 extern virtual_machine *curr_vm;
 extern uint32_t *flpt_va;
 
-#if 1
-#define mem_mmu_tlb_invalidate_all(a, b)
-#define mem_cache_invalidate(a,b,c)
-#define mem_cache_set_enable(a)
-#endif
-
 /* ---------------------------------------------------------------- 
  * BFT helper functions
  * ---------------------------------------------------------------- */
@@ -137,7 +131,6 @@ uint32_t l1PT_checker(uint32_t l1_desc)
 	if ((pt->addr & 0x2) == 2) {
 		err_flag = ERR_MMU_L2_BASE_OUT_OF_RANGE;
 	} else if (bft_entry_pt->type != PAGE_INFO_TYPE_L2PT) {
-
 		err_flag = ERR_MMU_IS_NOT_L2_PT;
 	} else if (bft_entry_pt->refcnt >= (MAX_30BIT - 4096)) {
 		err_flag = ERR_MMU_REF_OVERFLOW;
@@ -608,6 +601,8 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 	uint32_t l1_desc;
 	uint32_t l1_type;
 
+	/*Check that the guest does not override the virtual addresses used by the hypervisor */
+	// HAL_VIRT_START is usually 0xf0000000, where the hypervisor code/data structures reside
 	// user the master page table to discover if the va is reserved
 	// WARNING: we can currently reserve only blocks of 1MB and non single blocks
 	l1_idx = VA_TO_L1_IDX(va);
@@ -667,7 +662,8 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
  -------------------------------------------------------------------*/
 uint32_t l2Pt_desc_ap(addr_t l2_base_pa_add, l2_small_t * pg_desc)
 {
-	uint32_t ap = ((pg_desc->ap_3b) << 2) | (pg_desc->ap_0_1bs);
+	uint32_t ap =
+	    ((uint32_t) (pg_desc->ap_3b) << 2) | (pg_desc->ap_0_1bs);
 	dmmu_entry_t *bft_entry =
 	    get_bft_entry_by_block_idx(PA_TO_PH_BLOCK
 				       (START_PA_OF_SPT(pg_desc)));
@@ -762,7 +758,6 @@ void create_L2_pgtype_update(uint32_t l2_base_pa_add)
 
 uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 {
-
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -1021,9 +1016,7 @@ int dmmu_switch_mm(addr_t l1_base_pa_add)
 	COP_WRITE(COP_SYSTEM, COP_CONTEXT_ID_REGISTER, 0);	//Set reserved context ID
 	isb();
 	/* activate the guest page table */
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
 	COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, l1_base_pa_add);	// Set TTB0
-
 	return 0;
 }
 

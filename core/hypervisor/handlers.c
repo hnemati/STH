@@ -5,6 +5,19 @@ extern virtual_machine *curr_vm;
 
 #define USE_DMMU
 
+// Disabling aggressive flushing
+#define AGGRESSIVE_FLUSHING_HANDLERS
+
+void clean_and_invalidate_cache()
+{
+#ifdef AGGRESSIVE_FLUSHING_HANDLERS
+	isb();
+	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
+	CacheDataCleanInvalidateAll();
+	dsb();
+#endif
+}
+
 void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 		 uint32_t hypercall_number)
 {
@@ -23,7 +36,7 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 	}
 	if (curr_vm->current_guest_mode == HC_GM_TASK) {
 
-		//      debug("\tUser process made system call:\t\t\t %x\n",  curr_vm->mode_states[HC_GM_TASK].ctx.reg[7] );
+		//  debug("\tUser process made system call:\t\t\t %x\n",  curr_vm->mode_states[HC_GM_TASK].ctx.reg[7] );
 		change_guest_mode(HC_GM_KERNEL);
 		/*The current way of saving context by the hypervisor is very inefficient,
 		 * can be improved alot with some hacking and shortcuts (for the FUTURE)*/
@@ -84,9 +97,14 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 		switch (hypercall_number) {
 			/* TEMP: DMMU TEST */
 		case 666:
-			//res = dmmu_handler(param0, param1, param2, curr_vm->current_mode_state->ctx.reg[3]);
+
+			clean_and_invalidate_cache();
+
 			res = dmmu_handler(param0, param1, param2);
 			curr_vm->current_mode_state->ctx.reg[0] = res;
+
+			clean_and_invalidate_cache();
+
 			return;
 		case HYPERCALL_GUEST_INIT:
 			hypercall_guest_init(param0);
@@ -118,36 +136,50 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 
 			/*Page table operations */
 		case HYPERCALL_SWITCH_MM:
+			clean_and_invalidate_cache();
+
 			hypercall_dyn_switch_mm(param0, param1);
-			//hypercall_switch_mm(param0, param1);
+
+			clean_and_invalidate_cache();
+
 			return;
 
 		case HYPERCALL_NEW_PGD:
-			//hypercall_new_pgd((uint32_t*)param0);
+			clean_and_invalidate_cache();
+
 			hypercall_dyn_new_pgd((uint32_t *) param0);
+
+			clean_and_invalidate_cache();
+
 			return;
 		case HYPERCALL_FREE_PGD:
-			//hypercall_free_pgd((uint32_t*)param0);
+			clean_and_invalidate_cache();
+
 			hypercall_dyn_free_pgd((uint32_t *) param0);
+
+			clean_and_invalidate_cache();
+
 			return;
 		case HYPERCALL_CREATE_SECTION:
-			/*Not used anymore, DMMU init sets up everything in advance
-			 *TODO remove call from linux kernel */
-			//hypercall_create_section(param0,param1, param2);
 			return;
 		case HYPERCALL_SET_PMD:
-#ifdef USE_DMMU
+			clean_and_invalidate_cache();
+
 			hypercall_dyn_set_pmd(param0, param1);
-#else
-			hypercall_set_pmd((uint32_t *) param0, param1);
-#endif
+
+			clean_and_invalidate_cache();
+
 			return;
 		case HYPERCALL_SET_PTE:
-			//hypercall_set_pte((uint32_t*)param0, param1, param2);
+			clean_and_invalidate_cache();
+
 			hypercall_dyn_set_pte((uint32_t *) param0, param1,
 					      param2);
+
+			clean_and_invalidate_cache();
 			return;
-			/****************************/
+
+      /****************************/
 		 /*RPC*/ case HYPERCALL_RPC:
 			hypercall_rpc(param0, (uint32_t *) param1);
 			return;
@@ -258,14 +290,14 @@ return_value data_abort_handler(uint32_t addr, uint32_t status,
 
 return_value irq_handler(uint32_t irq, uint32_t r1, uint32_t r2)
 {
-//      printf("IRQ handler called %x:%x:%x\n", irq, r1, r2);
+	//    printf("IRQ handler called %x:%x:%x\n", irq, r1, r2);
 	/*Interrupt inside interrupt mode (i.e soft interrupt) */
 	if (curr_vm->current_guest_mode == HC_GM_INTERRUPT) {
 		curr_vm->current_mode_state->ctx.psr |= IRQ_MASK;
 		/*We dont handle reentrant IRQ... yet, let the current interrupt finish */
 		//Bypass it for now
 		//Should redirect to usr_exit -> (uint32_t)curr_vm->handlers.ret_from_exception;
-//              curr_vm->current_mode_state->ctx.pc = (uint32_t)curr_vm->handlers.tick;
+		//          curr_vm->current_mode_state->ctx.pc = (uint32_t)curr_vm->handlers.tick;
 		return RV_OK;
 	}
 

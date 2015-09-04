@@ -9,12 +9,6 @@
 extern virtual_machine *curr_vm;
 extern uint32_t *flpt_va;
 
-#if 1
-#define mem_mmu_tlb_invalidate_all(a, b)
-#define mem_cache_invalidate(a,b,c)
-#define mem_cache_set_enable(a)
-#endif
-
 /* ---------------------------------------------------------------- 
  * BFT helper functions
  * ---------------------------------------------------------------- */
@@ -235,11 +229,6 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 	uint32_t ph_block;
 	int i;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	/*Check that the guest does not override the physical addresses outside its range */
 	// TODO, where we take the guest assigned physical memory?
 	if (!guest_pa_range_checker(l1_base_pa_add, 4 * PAGE_SIZE))
@@ -318,11 +307,6 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 	get_bft_entry_by_block_idx(ph_block + 2)->type = PAGE_INFO_TYPE_L1PT;
 	get_bft_entry_by_block_idx(ph_block + 3)->type = PAGE_INFO_TYPE_L1PT;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -338,11 +322,6 @@ uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
 	uint32_t l1_desc_va_add;
 	uint32_t l1_desc_pa_add;
 	uint32_t ap;
-
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	/*Check that the guest does not override the virtual addresses used by the hypervisor */
 	// HAL_VIRT_START is usually 0xf0000000, where the hypervisor code/data structures reside
@@ -418,11 +397,6 @@ uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
 		*((uint32_t *) l1_desc_va_add) = l1_desc;
 	}
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -438,21 +412,8 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 	uint32_t l1_desc;
 	uint32_t l1_type;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	/*Check that the guest does not override the virtual addresses used by the hypervisor */
 	// HAL_VIRT_START is usually 0xf0000000, where the hypervisor code/data structures reside
-#if 0
-	if (va >= HAL_VIRT_START)
-		return ERR_MMU_RESERVED_VA;
-
-	if (va >= curr_vm->config->reserved_va_for_pt_access_start
-	    && va <= curr_vm->config->reserved_va_for_pt_access_end)
-		return ERR_MMU_RESERVED_VA;
-#else
 	// user the master page table to discover if the va is reserved
 	// WARNING: we can currently reserve only blocks of 1MB and non single blocks
 	l1_idx = VA_TO_L1_IDX(va);
@@ -460,7 +421,6 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 	if (L1_TYPE(l1_desc) != UNMAPPED_ENTRY) {
 		return ERR_MMU_RESERVED_VA;
 	}
-#endif
 
 	COP_READ(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0,
 		 (uint32_t) l1_base_add);
@@ -499,11 +459,6 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 	else {
 		return ERR_MMU_ENTRY_UNMAPPED;
 	}
-
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	return 0;
 }
@@ -600,11 +555,6 @@ void create_L2_pgtype_update(uint32_t l2_base_pa_add)
 
 uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 {
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -657,11 +607,6 @@ uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 	} else
 		return ERR_MMU_SANITY_CHECK_FAILED;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -677,21 +622,8 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	uint32_t l1_desc;
 	uint32_t page_desc;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	// HAL_VIRT_START is usually 0xf0000000, where the hypervisor code/data structures reside
 	/*Check that the guest does not override the virtual addresses used by the hypervisor */
-#if 0
-	if (va >= HAL_VIRT_START)
-		return ERR_MMU_RESERVED_VA;
-
-	if (va >= curr_vm->config->reserved_va_for_pt_access_start
-	    && va <= curr_vm->config->reserved_va_for_pt_access_end)
-		return ERR_MMU_RESERVED_VA;
-#else
 	// user the master page table to discover if the va is reserved
 	// WARNING: we can currently reserve only blocks of 1MB and non single blocks
 	l1_idx = VA_TO_L1_IDX(va);
@@ -699,7 +631,6 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	if (L1_TYPE(l1_desc) != UNMAPPED_ENTRY) {
 		return ERR_MMU_RESERVED_VA;
 	}
-#endif
 	if (!guest_pa_range_checker(l2_base_pa_add, PAGE_SIZE))
 		return ERR_MMU_OUT_OF_RANGE_PA;
 
@@ -735,11 +666,6 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 
 	*((uint32_t *) l1_desc_va_add) = l1_desc;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -749,10 +675,6 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 		      addr_t page_pa_add, uint32_t attrs)
 {
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
@@ -806,11 +728,6 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 	l2_desc = CREATE_L2_DESC(page_pa_add, attrs);
 	*((uint32_t *) l2_desc_va_add) = l2_desc;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -819,10 +736,6 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
  *  -------------------------------------------------------------------*/
 int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 {
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
@@ -861,11 +774,6 @@ int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 	l2_desc = UNMAP_L2_ENTRY(l2_desc);
 	*((uint32_t *) l2_desc_va_add) = l2_desc;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -874,10 +782,6 @@ int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
  *  -------------------------------------------------------------------*/
 int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 {
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
@@ -925,11 +829,6 @@ int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 	//Changing the type of the L2 page table to data page
 	bft_entry->type = PAGE_INFO_TYPE_DATA;
 
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
-
 	return 0;
 }
 
@@ -939,10 +838,6 @@ int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 //#define SW_DEBUG
 int dmmu_switch_mm(addr_t l1_base_pa_add)
 {
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	int i;
 	uint32_t ph_block;
@@ -976,12 +871,7 @@ int dmmu_switch_mm(addr_t l1_base_pa_add)
 	COP_WRITE(COP_SYSTEM, COP_CONTEXT_ID_REGISTER, 0);	//Set reserved context ID
 	isb();
 	/* activate the guest page table */
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
 	COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, l1_base_pa_add);	// Set TTB0
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 	return 0;
 }
 
@@ -992,10 +882,6 @@ int dmmu_switch_mm(addr_t l1_base_pa_add)
  *  ------------------------------------------------------------------- */
 int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 {
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	uint32_t l1_idx, pt_idx, sec_idx;
 	uint32_t l1_desc;
@@ -1073,11 +959,6 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	get_bft_entry_by_block_idx(ph_block + 1)->type = PAGE_INFO_TYPE_DATA;
 	get_bft_entry_by_block_idx(ph_block + 2)->type = PAGE_INFO_TYPE_DATA;
 	get_bft_entry_by_block_idx(ph_block + 3)->type = PAGE_INFO_TYPE_DATA;
-
-	isb();
-	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
-	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
-	mem_cache_set_enable(TRUE);
 
 	return 0;
 }

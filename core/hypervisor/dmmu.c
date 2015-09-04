@@ -128,7 +128,7 @@ BOOL l1Sec_checker(uint32_t l1_desc, addr_t l1_base_pa_add)
 		err_flag = ERR_MMU_AP_UNSUPPORTED;
 	// TODO: Check also that the guest can not read into the hypervisor memory
 	// TODO: in general we need also to prevent that it can read from the trusted component, thus identifying a more fine grade control
-	//               e.g. using domain
+	//             e.g. using domain
 	// TODO: e.g. if you can read in user mode and the domain is the guest user domain or kernel domain then the pa must be in the guest memory
 	else if (ap == 3) {
 		uint32_t max_kernel_ac =

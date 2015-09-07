@@ -972,10 +972,14 @@ void test_switch_mm()
 
 void test_unmap_L1_pt()
 {
+	char *test_name = "UNMAP L1 PAGE TABLE";
+	printf("Test suite: %s\n", test_name);
+
 	uint32_t pa, va, attrs, res;
 	int j, t_id = 0;
 
-	// #0: this test should fail because guest is trying to create a new page table in a part of the memory that is reserved for hypervisor use
+	//#0: This test should fail, because we are trying to create a new page
+	//table in a part of the memory which is reserved for hypervisor use.
 	pa = 0x80000000;
 	res = ISSUE_DMMU_HYPERCALL(CMD_FREE_L1, pa, 0, 0);
 	expect(t_id,

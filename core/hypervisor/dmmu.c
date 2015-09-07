@@ -393,6 +393,8 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	if (l1_base_pa_add != (l1_base_pa_add & 0xFFFFC000))
 		return ERR_MMU_L1_BASE_IS_NOT_16KB_ALIGNED;
 
+	ph_block = PA_TO_PH_BLOCK(l1_base_pa_add);
+
 	if (get_bft_entry_by_block_idx(ph_block)->type != PAGE_INFO_TYPE_L1PT
 	    || get_bft_entry_by_block_idx(ph_block + 1)->type !=
 	    PAGE_INFO_TYPE_L1PT
@@ -408,8 +410,6 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	if ((curr_l1_base_pa_add & 0xFFFFC000) ==
 	    (l1_base_pa_add & 0xFFFFC000))
 		return ERR_MMU_FREE_ACTIVE_L1;
-
-	ph_block = PA_TO_PH_BLOCK(l1_base_pa_add);
 
 	//unmap_L1_pt_ref_update
 	for (l1_idx = 0; l1_idx < 4096; l1_idx++) {

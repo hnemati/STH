@@ -76,7 +76,13 @@ hc_config linux_config = {
 	.rpc_handlers = &rpc_handler_trusted,
 	.reserved_va_for_pt_access_start = 0xE8000000,
 	// Offset respect the initial pa of the guest
-	.pa_initial_l1_offset = 0x00004000,	// Offset to master page table in Linux
+	//.pa_initial_l1_offset = 0x00004000, // Offset to master page table in Linux
+	.pa_initial_l1_offset = 0x00000000,	// Offset to master page table in Linux
+	//.pa_initial_l1_offset = 0x6800000, // Offset to master page table in Linux
 	/*L2 offset is the end of the guest physical memory, 1MB */
-	.pa_initial_l2_offset = 0x0
+	.pa_initial_l2_offset = 0x0,
+	//.always_cached_offset = 0x6800000,
+	.always_cached_offset = 0x0,
+	//.always_cached_size = (0x6A00000 - 0x6800000)
+	.always_cached_size = (0x6A00000 - 0x0)
 };

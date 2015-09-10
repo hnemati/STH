@@ -1,4 +1,4 @@
 
 #include <lib.h>
-struct guest_data guest_data;
 
+struct guest_data guest_data;

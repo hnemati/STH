@@ -97,17 +97,17 @@
 void timer_tick_start(cpu_callback handler) 
 {
 	
-/*DMTIMER as timer tick*/ 
+	    /*DMTIMER as timer tick */ 
 	    cpu_irq_set_enable(INTC_IRQ_TIMER7, FALSE);
 	
 	    //timer = timer_tick_get();
 	    timer = timer_get(12);
 	 
-/*	volatile uint32_t *gpt12_ick = 0xfa004c10;
-	uint32_t v;
-	v = *gpt12_ick;
-	v |= 2;
-	*gpt12_ick = v;*/ 
+	    /*    volatile uint32_t *gpt12_ick = 0xfa004c10;
+	       uint32_t v;
+	       v = *gpt12_ick;
+	       v |= 2;
+	       *gpt12_ick = v; */ 
 	    timer->tsicr = 6;	/*reset */
 	uint32_t i = 0, l = 0;
 	

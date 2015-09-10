@@ -19,11 +19,11 @@ void change_guest_mode(uint32_t mode)
 
 
 /*
-void hypercall_register_handler(uint32_t handler)
-{
-	printf("Registering guest tick handler: %x \n", handler);
-	curr_vm->guest_tick_handler = handler;
-}
+  void hypercall_register_handler(uint32_t handler)
+  {
+  printf("Registering guest tick handler: %x \n", handler);
+  curr_vm->guest_tick_handler = handler;
+  }
 */ 
     uint32_t boot = 0;
  

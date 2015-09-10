@@ -259,7 +259,7 @@ void hypercall_free_pgd(addr_t * pgd)
 #ifdef DEBUG_MMU
 	printf("\n\t\t\tHypercall FREE PGD\n\t\t pgd:%x ", pgd);
 #endif
-//      printf("\n\tLinux kernel Free PGD: %x\n", pgd);
+	//    printf("\n\tLinux kernel Free PGD: %x\n", pgd);
 	uint32_t pgd_size = 0x4000;
 	uint32_t PAGE_OFFSET = curr_vm->guest_info.page_offset;
 
@@ -325,7 +325,7 @@ void hypercall_new_pgd(addr_t * pgd)
 		    ("New page global directory does not reside in kernel address space\n",
 		     1);
 
-//      printf("\n\tLinux kernel NEW PGD: %x\n", pgd);
+	//    printf("\n\tLinux kernel NEW PGD: %x\n", pgd);
 	/*If the requested page is in a section page, we need to modify it to lvl 2 pages
 	 *so we can modify the access control granularity */
 	slpt_pa = (flpt_va[(uint32_t) pgd >> MMU_L1_SECTION_SHIFT]);
@@ -432,7 +432,7 @@ void hypercall_set_pmd(addr_t * pmd, uint32_t val)
 		}
 	}
 
-	/***********************************************/
+  /***********************************************/
 
 	/*Swapper Page */
 	if ((uint32_t) pmd >= PAGE_OFFSET + 0x4000
@@ -568,8 +568,8 @@ void hypercall_set_pte(addr_t * va, uint32_t linux_pte, uint32_t phys_pte)
 		}
 	}
 
-	/***********************************************/
-//      printf("\n\tHYP: Set pte va: %x phys_pte: %x \n", va, phys_pte );
+  /***********************************************/
+	//    printf("\n\tHYP: Set pte va: %x phys_pte: %x \n", va, phys_pte );
 	*phys_va = phys_pte;
 	*va = linux_pte;
 	COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t) phys_va);

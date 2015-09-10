@@ -128,8 +128,8 @@ void gpio_set_pad_configuration(int item, int mode, BOOL is_input,
 	pad_config =
 	    (BASE_REG *)
 	    IO_VA_ADDRESS((SMC_CONTROL_PAD_CONFIG_BASE + (item / 2) * 4));
-// Flyswatter gets stuck in uart_write_char when using the printf below!
-// printf("DEBUF: pad_config = %x, base =%x, item = %d\n", pad_config, SMC_CONTROL_PAD_CONFIG_BASE, item); // DEBUG
+	// Flyswatter gets stuck in uart_write_char when using the printf below!
+	// printf("DEBUF: pad_config = %x, base =%x, item = %d\n", pad_config, SMC_CONTROL_PAD_CONFIG_BASE, item); // DEBUG
 
 	/*
 	   printf("DEBUG: item %d, mode %d. pad_config %x -> %x\n",

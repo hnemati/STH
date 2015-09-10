@@ -47,9 +47,9 @@
 /*	asm volatile("mrc " cop ", 0 , %0, " func : "=r" (reg)) */ 
      
 /* these also set op1 which is otherwise 0 */ 
-#define COP_WRITE2(cop, op1, func, reg) \
+#define COP_WRITE2(cop, op1, func, reg)				\
 asm volatile ("mcr " cop "," op1 ", %0," func::"r"(reg))  
-#define COP_READ2(cop, op1, func, reg) \
+#define COP_READ2(cop, op1, func, reg)				\
  asm volatile ("mrc " cop "," op1 ", %0, " func:"=r"(reg))  
 #if ARM_ARCH >= 7
 #define isb() __asm__ __volatile__ ("isb" : : : "memory")
@@ -59,7 +59,7 @@ asm volatile ("mcr " cop "," op1 ", %0," func::"r"(reg))
 #else	/*  */
 #define dmb() /* empty */
 #define isb() /* empty */ 
-#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
+#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4"	\
 ::"r"(0):"memory")  
 #endif	/*  */
      

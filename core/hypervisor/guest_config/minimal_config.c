@@ -13,17 +13,17 @@
  * Guest mode access to certain domains
  * ********************************************************/ 
     
-#define HC_DOMAC_ALL \
+#define HC_DOMAC_ALL				\
     ((1 << (2 * HC_DOM_DEFAULT)) | \
      (1 << (2 * HC_DOM_TASK)) | \
      (1 << (2 * HC_DOM_KERNEL)) | \(1 << (2 * HC_DOM_TRUSTED)))  
-#define HC_DOMAC_KERNEL  \
+#define HC_DOMAC_KERNEL				\
     ((1 << (2 * HC_DOM_DEFAULT)) | \(1 << (2 * HC_DOM_KERNEL)))  
-#define HC_DOMAC_TRUSTED \
+#define HC_DOMAC_TRUSTED			\
     ((1 << (2 * HC_DOM_DEFAULT)) | \(1 << (2 * HC_DOM_TRUSTED)))  
 #define HC_DOMAC_INTERRUPT HC_DOMAC_ALL
     
-#define HC_DOMAC_TASK \
+#define HC_DOMAC_TASK				\
     ((1 << (2 * HC_DOM_DEFAULT)) | \(1 << (2 * HC_DOM_TASK)))  
 /*************************************************************/ 
     
@@ -32,9 +32,9 @@
  */ 
 #define HC_CAP_TASK 0		// No capabilities
     
-#define HC_CAP_INTERRUPT \
+#define HC_CAP_INTERRUPT			\
     (HC_CAP_GET_MODE_CONTEXT | \HC_CAP_SET_MODE_CONTEXT)  
-#define HC_CAP_KERNEL \
+#define HC_CAP_KERNEL				\
     (HC_CAP_SET_MODE_CONTEXT | \HC_CAP_GET_MODE_CONTEXT)  
 #define HC_CAP_TRUSTED 0	// No capabilities
     

@@ -74,29 +74,29 @@ static return_value default_catcher(uint32_t r0, uint32_t r1, uint32_t r2)
 	     * Memory region attributes with SCTLR.TRE=1
 	     *
 	     *   n = TEX[0],C,B
-	     *   TR = PRRR[2n+1:2n]         - memory type
-	     *   IR = NMRR[2n+1:2n]         - inner cacheable property
-	     *   OR = NMRR[2n+17:2n+16]     - outer cacheable property
+	     *   TR = PRRR[2n+1:2n]               - memory type
+	     *   IR = NMRR[2n+1:2n]               - inner cacheable property
+	     *   OR = NMRR[2n+17:2n+16]   - outer cacheable property
 	     *
-	     *                      n       TR      IR      OR
-	     *   UNCACHED           000     00
-	     *   BUFFERABLE         001     10      00      00
-	     *   WRITETHROUGH       010     10      10      10
-	     *   WRITEBACK          011     10      11      11
-	     *   reserved           110
-	     *   WRITEALLOC         111     10      01      01
-	     *   DEV_SHARED         100     01
-	     *   DEV_NONSHARED      100     01
-	     *   DEV_WC             001     10
-	     *   DEV_CACHED         011     10
+	     *                    n       TR      IR      OR
+	     *   UNCACHED         000     00
+	     *   BUFFERABLE               001     10      00      00
+	     *   WRITETHROUGH     010     10      10      10
+	     *   WRITEBACK                011     10      11      11
+	     *   reserved         110
+	     *   WRITEALLOC               111     10      01      01
+	     *   DEV_SHARED               100     01
+	     *   DEV_NONSHARED    100     01
+	     *   DEV_WC           001     10
+	     *   DEV_CACHED               011     10
 	     *
 	     * Other attributes:
 	     *
-	     *   DS0 = PRRR[16] = 0         - device shareable property
-	     *   DS1 = PRRR[17] = 1         - device shareable property
-	     *   NS0 = PRRR[18] = 0         - normal shareable property
-	     *   NS1 = PRRR[19] = 1         - normal shareable property
-	     *   NOS = PRRR[24+n] = 1       - not outer shareable */ 
+	     *   DS0 = PRRR[16] = 0               - device shareable property
+	     *   DS1 = PRRR[17] = 1               - device shareable property
+	     *   NS0 = PRRR[18] = 0               - normal shareable property
+	     *   NS1 = PRRR[19] = 1               - normal shareable property
+	     *   NOS = PRRR[24+n] = 1     - not outer shareable */ 
 	    uint32_t prrr = 0xFF0a81A8;	// Primary region remap regiser
 	uint32_t nmrr = 0x40E040e0;	// Normal memory remap register
 	COP_WRITE(COP_SYSTEM, COP_MEMORY_REMAP_PRRR, prrr);

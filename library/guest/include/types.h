@@ -2,5 +2,5 @@
 #define _TYPES_H_
 
 #include <uclib_types.h>
-    
-#endif	/* _TYPES_H_ */
+
+#endif				/* _TYPES_H_ */

@@ -90,8 +90,6 @@ void hypercall_dyn_free_pgd(addr_t * pgd_va)
 			printf("\n\tCould not map L2 entry in new pgd\n");
 
 		clean_va = LINUX_VA(MMU_L2_SMALL_ADDR(l2_page_entry[i]));
-
-		//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, &l2_page_entry[i]);
 		CacheDataInvalidateBuff(&l2_page_entry[i], 4);
 		dsb();
 
@@ -100,6 +98,7 @@ void hypercall_dyn_free_pgd(addr_t * pgd_va)
 		dsb();
 		isb();
 	}
+
 #ifdef AGGRESSIVE_FLUSHING_HANDLERS
 	hypercall_dcache_clean_area((uint32_t) pgd_va, 0x4000);
 #endif
@@ -184,10 +183,8 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 		}
 
 		/*Invalidate updated entry */
-		//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA,l1_pt_entry_for_desc);
 		CacheDataInvalidateBuff(l1_pt_entry_for_desc, 4);
 		dsb();
-
 	}
 	/*Here we already got a L2PT */
 	else {
@@ -224,7 +221,6 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 
 			clean_va =
 			    LINUX_VA(MMU_L2_SMALL_ADDR(l2_page_entry[i]));
-			//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, &l2_page_entry[i]);
 			CacheDataInvalidateBuff(&l2_page_entry[i], 4);
 			dsb();
 
@@ -250,6 +246,7 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 #ifdef AGGRESSIVE_FLUSHING_HANDLERS
 	hypercall_dcache_clean_area((uint32_t) pgd_va, 0x4000);
 #endif
+
 	if (dmmu_create_L1_pt(LINUX_PA((addr_t) pgd_va))) {
 		printf("\n\tCould not create L1 pt in new pgd\n");
 	}
@@ -324,29 +321,6 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		if (dmmu_l1_pt_map((addr_t) desc_va, table2_pa, attrs))
 			printf("\n\tCould not map L1 PT in set PMD\n");
 
-#if 0
-		/*Changing a mapping leaves other page tables unconsistent
-		 *now we just change the master pgd, but we should probably change
-		 *all existing PGDs*/
-		if (((addr_t) pmd & L1_BASE_MASK) != (master_pgd_va)) {
-			/*This means that we are setting a pmd on another pgd, current
-			 * API does not allow that, so we have to switch the physical ttb0
-			 * back and forth */
-			COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, LINUX_PA((addr_t) master_pgd_va));	// Set TTB0
-			isb();
-			/*Clear the SECTION entry mapping and replace it with a L2PT */
-			if (dmmu_unmap_L1_pageTable_entry((addr_t) desc_va))
-				printf
-				    ("\n\tCould not unmap L1 entry in set PMD\n");
-			if (dmmu_l1_pt_map
-			    ((addr_t) desc_va, table2_pa, attrs))
-				printf
-				    ("\n\tCould not map L1 PT in set PMD\n");
-
-			COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, curr_pgd_pa);	// Set TTB0
-			isb();
-		}
-#endif
 		/*Remap each individual small page to the same address */
 		uint32_t page_pa = MMU_L1_SECTION_ADDR(l1_desc_entry);
 		/*Small page with CB on and RW */
@@ -384,6 +358,7 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 			  l1_pt_entry_for_desc);
 		dsb();
 #endif
+		dsb();
 		l1_desc_entry = *l1_pt_entry_for_desc;
 	}
 
@@ -435,13 +410,12 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 	    (addr_t) ((pmd - pgd_va) << MMU_L1_SECTION_SHIFT);
 
 	if (desc == 0) {
-#if 1
 		uint32_t linux_va = pmd[0] - phys_start + page_offset;
 		COP_WRITE(COP_SYSTEM, COP_TLB_INVALIDATE_MVA, linux_va);
 		COP_WRITE(COP_SYSTEM, COP_BRANCH_PRED_INVAL_ALL, linux_va);
 		dsb();
 		isb();
-#endif
+
 		if (dmmu_unmap_L1_pageTable_entry(virt_transl_for_pmd))
 			printf("\n\tCould not unmap L1 entry in set PMD\n");
 		if (dmmu_unmap_L1_pageTable_entry
@@ -451,6 +425,7 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA,
 			  (uint32_t) pmd);
 #endif
+
 		/*We need to make the l2 page RW again so that
 		 *OS can reuse the address */
 		if (dmmu_l2_unmap_entry
@@ -462,20 +437,19 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		    ((uint32_t) l2pt_pa & L2_BASE_MASK, table2_idx + l2_idx,
 		     MMU_L2_SMALL_ADDR((uint32_t) * pmd), l2_rw_attrs))
 			printf("\n\tCould not map L2 entry in set PMD\n");
-		//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t)&l2pt_va[l2_idx]);
 
-		/*Flush entry */
+		//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t)&l2pt_va[l2_idx]);
 		CacheDataInvalidateBuff((uint32_t) & l2pt_va[l2_idx], 4);
+		/*Flush entry */
 		dsb();
 	} else {
-#if 1
 		uint32_t linux_va = desc - phys_start + page_offset;
 		COP_WRITE(COP_SYSTEM, COP_TLB_INVALIDATE_MVA, linux_va);
 		COP_WRITE(COP_SYSTEM, COP_BRANCH_PRED_INVAL_ALL, linux_va);
 		dsb();
 		isb();
-#endif
 
+		/*Flush entry */
 		if (dmmu_l1_pt_map
 		    (virt_transl_for_pmd, MMU_L2_SMALL_ADDR(desc), attrs))
 			printf("\n\tCould not map L1 PT in set PMD\n");
@@ -483,13 +457,12 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		    (virt_transl_for_pmd + SECTION_SIZE,
 		     MMU_L2_SMALL_ADDR(desc) + 0x400, attrs))
 			printf("\n\tCould not map L1 PT in set PMD\n");
-		/*Flush entry */
-//              COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t)pmd);
-//              COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t)&l2pt_va[l2_idx]);
 
+		/*Flush entry */
 		CacheDataInvalidateBuff((uint32_t) pmd, 4);
 		CacheDataInvalidateBuff((uint32_t) & l2pt_va[l2_idx], 4);
 		dsb();
+
 	}
 	if (switch_back) {
 		COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, curr_pgd_pa);	// Set TTB0
@@ -501,6 +474,7 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 	COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t) pmd);
 	dsb();
 #endif
+	dsb();
 }
 
 /*va is the virtual address of the page table entry for linux pages
@@ -581,5 +555,4 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 
 	//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t)l2pt_hw_entry_va );
 	CacheDataInvalidateBuff((uint32_t) l2pt_hw_entry_va, 4);
-
 }

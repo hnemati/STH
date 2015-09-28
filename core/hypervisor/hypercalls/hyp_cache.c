@@ -55,7 +55,7 @@ void hypercall_tlb_invalidate_mva(addr_t va)
 
 void hypercall_tlb_invalidate_asid(uint32_t asid)
 {
-/*ARM 926 does not have this function*/
+	/*ARM 926 does not have this function */
 #if ARM_ARCH > 5
 	COP_WRITE(COP_SYSTEM, COP_TLB_INVALIDATE_ASID, asid);
 #endif
@@ -67,28 +67,21 @@ void hypercall_cache_op(enum hyp_cache_op op, addr_t va, uint32_t size)
 	switch (op) {
 	case FLUSH_ALL:
 		hypercall_flush_all();
-		//CacheDataInvalidateAll();
-		//CacheInstInvalidateAll();
 		return;
 	case FLUSH_D_CACHE_AREA:
 		hypercall_dcache_flush_area(va, size);
-		//CacheDataInvalidateBuff(va, size);
 		return;
 	case CLEAN_D_CACHE_AREA:
-		//hypercall_dcache_clean_area(va, size);
-		CacheDataCleanBuff(va, size);
+		hypercall_dcache_clean_area(va, size);
 		return;
 	case INVAL_D_CACHE_MVA:
-		//hypercall_dcache_invalidate_mva(va);
-		CacheDataCleanBuff(va, 4);
+		hypercall_dcache_invalidate_mva(va);
 		return;
 	case FLUSH_I_CACHE_ALL:
-		//hypercall_icache_invalidate_all();
-		CacheInstInvalidateAll();
+		hypercall_icache_invalidate_all();
 		return;
 	case FLUSH_I_CACHE_MVA:
-		//hypercall_icache_invalidate_mva(va);
-		CacheInstInvalidateBuff(va, 4);
+		hypercall_icache_invalidate_mva(va);
 		return;
 	case INVAL_ALL_BRANCH:
 		hypercall_branch_invalidate_all();

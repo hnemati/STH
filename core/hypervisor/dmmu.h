@@ -71,7 +71,7 @@ typedef __PACKED struct l2_small {
 	uint32_t s:1;
 	uint32_t ng:1;
 	uint32_t addr:20;
-} l2_small_t;
+} l1_small_t;
 
 /* Error messages */
 #define SUCCESS_MMU                 (0)

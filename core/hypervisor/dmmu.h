@@ -16,7 +16,7 @@
 
 // To check if all the page tables are allocated form the region that is always chackable or not
 //#define DEBUG_DMMU_CACHEABILITY_CHECKERS
-#define CHECK_PAGETABLES_CACHEABILITY
+//#define CHECK_PAGETABLES_CACHEABILITY
 
 /* bft entry type */
 enum dmmu_entry_type {

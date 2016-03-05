@@ -110,6 +110,53 @@ static return_value timer_tick_handler_stub(uint32_t irq, uint32_t r1,
 // start a timer
 // --------------------------------------------------
 
+void gp_timer_tick_start(cpu_callback handler)
+{
+/*DMTIMER as timer tick*/
+
+	cpu_irq_set_enable(INTC_IRQ_GPTIMERn(1), FALSE);
+	timer = timer_get(1);
+
+	timer->tsicr = 6;	/*reset */
+	uint32_t i = 0, l = 0;
+	/*wait for reset */
+
+	while (!(timer->tistat & 1)) {
+		i++;
+		if (i > 100000) {
+			printf("Timer failed to reset\n");
+		}
+	}
+	l = timer->tiocp_cfg;
+	l |= (0x2 << 3);	/* Smart idle mode */
+	l |= (0x2 << 8);	/* Perserve f-clock on idle */
+	timer->tiocp_cfg = l;
+	timer->tsicr = (1 << 2);	/*Timer control, posted */
+
+	/*Period = 0x100 -1 = 0xff, load = 0xFFFFFFFF - period */
+/*
+	timer->tldr = 0xffffff00;
+	timer->tcrr = 0xffffff00; /*counter reg*/
+
+	/*lower values make linux boot faster as it is not interrupted all the time, higher original values 0xff
+	 *makes the kernel stop working */
+	timer->tldr = 0xfffff000;
+	timer->tcrr = 0xfffff000;	/*counter reg */
+
+	tick_handler = handler;
+
+	cpu_irq_set_handler(INTC_IRQ_GPTIMERn(1), timer_tick_handler_stub);
+	cpu_irq_set_enable(INTC_IRQ_GPTIMERn(1), TRUE);
+
+	/* clear old status bits, set interrupt type and start it */
+	timer->tclr |= GTIMER_TCLR_START_STOP_CTRL | GTIMER_TCLR_AUTO_RELOAD;	/*Auto reload enable */
+	timer->tisr |=
+	    GTIMER_TISR_MAT_IT_FLAG_CLEAR | GTIMER_TISR_OVT_IT_FLAG_CLEAR |
+	    GTIMER_TISR_TCAR_IT_FLAG_CLEAR;
+	timer->tier = GTIMER_TIER_OVF_IT_EN;	/*TIMER INTERRUPT ENABLE */
+	timer->twer = GTIMER_TIER_OVF_IT_EN;	/*TIMER WAKEUP ENABLE */
+}
+
 void timer_tick_start(cpu_callback handler)
 {
 	/*DMTIMER as timer tick */

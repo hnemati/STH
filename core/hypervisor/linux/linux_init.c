@@ -123,6 +123,9 @@ void init_linux_page()
 				  MLT_USER_RAM);
 	}
 
+	/*New ATAG (3.10) at end of image */
+	pt_create_section(flpt_va, 0x9FE00000, 0x9FE00000, MLT_USER_RAM);
+
 	uint32_t phys = 0;
 	p = (uint32_t *) ((uint32_t) slpt_va + ((l2_index_p - 1) * 0x400));	/*256 pages * 4 bytes for each lvl 2 page descriptor */
 	/*Modify the master swapper page global directory to read only */
@@ -230,7 +233,7 @@ void linux_init_dmmu()
 	for (i = reserved_l2_pts_pa; i < reserved_l2_pts_pa + 0x10000;
 	     i += PAGE_SIZE) {
 		if ((error = dmmu_create_L2_pt(i)))
-			printf("\n\tCould not map L2 PT: %d\n", error);
+			printf("\n\tCould not map L2 PT: %d %x\n", error, i);
 	}
 
 	/*L1PT attrs */

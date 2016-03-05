@@ -1,7 +1,15 @@
 
 #include <uclib.h>
 
-#define BASE_UART1   0x4806A000
+#define UART0_VA_BASE (IO_VA_ADDRESS(UART0_BASE))
+#define UART1_VA_BASE (IO_VA_ADDRESS(UART1_BASE))
+
+#define UART0_BASE 0x44E09000
+#define UART1_BASE   0x48022000
+
+#define IO_BASE 				0xF0000000
+#define IO_OFFSET				0xB2000000
+#define IO_VA_ADDRESS(x)		((x) + IO_OFFSET)
 
 #define UART_LCR_MODE_OP 0
 #define UART_LCR_MODE_A 0x80
@@ -88,7 +96,7 @@ typedef union {
 
 /* ------------------------------------------------ */
 
-static uart_registers *uart = (uart_registers *) BASE_UART1;
+static uart_registers *uart = (uart_registers *) UART0_VA_BASE;
 
 /* ------------------------------------------------ */
 

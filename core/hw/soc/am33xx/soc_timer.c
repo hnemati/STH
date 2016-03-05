@@ -26,9 +26,9 @@ typedef struct {
 	uint32_t tiocp_cfg;
 	uint32_t unused2[3];
 
-	uint32_t irq_eoi;
-	uint32_t irqstatus_raw;
-	uint32_t irqstatus;
+	uint32_t irq_eoi;	//20
+	uint32_t irqstatus_raw;	//24
+	uint32_t irqstatus;	//28
 	uint32_t irqenable_set;
 	uint32_t irqenable_clr;
 	uint32_t irqwakeen;
@@ -75,9 +75,8 @@ static uint32_t TIMER_BASES_1MS[] = {
 };
 
 static uint32_t TIMER_BASES[] = {
-	0x44E05000,
-//    0x44E31000,    // 1ms timer
-	0x48040000,
+	0x44E05000,		/*DMTIMER1 */
+	0x48040000,		/*DMTIMER2 */
 	0x48042000,		/* TODO: WHY IS TIMER3 TURNED OFF? */
 	0x48044000,
 	0x48046000,
@@ -94,35 +93,79 @@ return_value timer_tick_handler_stub(uint32_t r0, uint32_t r1, uint32_t r2);
 // timer support functions
 // ------------------------------------------------------
 
+static gtimer *timer;
+
 gtimer *timer_get(int n)
 {
 	if (n < 0 || n >= GTIMER_COUNT)
 		return 0;
-	return (gtimer *) TIMER_BASES[n];
+	return (gtimer *) IO_VA_OMAP2_L4_ADDRESS(TIMER_BASES[n]);
 }
 
-static gtimer_1ms *timer_tick_get()
+static gtimer_1ms *timer_tick_get1ms()
 {
-	return (gtimer_1ms *) TIMER_BASES_1MS[0];
+	return (gtimer_1ms *) IO_VA_ADDRESS(TIMER_BASES_1MS[0]);
 }
 
-void timer_tick_clear_interrupt()
+void timer_tick1ms_clear_interrupt()
 {
-	gtimer_1ms *timer = timer_tick_get();
+
+	gtimer_1ms *timer = timer_tick_get1ms();
 	volatile uint32_t what;
 
 	what = timer->tisr;
 	timer->tisr = what;
 }
 
+void timer_tick_clear_interrupt()
+{
+	timer->irqstatus = GTIMER_TISR_OVT_IT_FLAG_CLEAR;	// | GTIMER_TISR_MAT_IT_FLAG_CLEAR | GTIMER_TISR_TCAR_IT_FLAG_CLEAR;
+}
+
+void gp_timer_tick_start(cpu_callback handler)
+{
+	/*DMTIMER as timer tick */
+
+	timer = timer_get(1);	/*Use DMTIMER2, same as Linux */
+
+	cpu_irq_set_enable(INTC_IRQ_TIMER2, FALSE);
+
+	timer->tsicr = 6;	/*reset */
+	int l;
+	l = timer->tiocp_cfg;
+	l |= (0x2 << 3);	/* Smart idle mode */
+	l |= (0x2 << 8);	/* Perserve f-clock on idle */
+	timer->tiocp_cfg = l;
+	timer->tsicr = (1 << 2);	/*Timer control, posted */
+
+	/*Period = 0x100 -1 = 0xff, load = 0xFFFFFFFF - period */
+
+	timer->tldr = 0xfffff000;
+	timer->tcrr = 0xfffff000;	/*counter reg */
+
+	tick_handler = handler;
+	cpu_irq_set_handler(INTC_IRQ_TIMER2, timer_tick_handler_stub);
+	cpu_irq_set_enable(INTC_IRQ_TIMER2, TRUE);
+
+	/* clear old status bits, set interrupt type and start it */
+	timer->tclr |= GTIMER_TCLR_START_STOP_CTRL | GTIMER_TCLR_AUTO_RELOAD;	/*Auto reload enable */
+	timer->irqstatus |=
+	    GTIMER_TISR_MAT_IT_FLAG_CLEAR | GTIMER_TISR_OVT_IT_FLAG_CLEAR |
+	    GTIMER_TISR_TCAR_IT_FLAG_CLEAR;
+	timer->irqenable_set = GTIMER_TIER_OVF_IT_EN;	/*TIMER INTERRUPT ENABLE */
+	timer->irqwakeen = GTIMER_TIER_OVF_IT_EN;	/*TIMER WAKEUP ENABLE */
+
+}
+
 void timer_tick_start(cpu_callback handler)
 {
-	gtimer_1ms *timer = timer_tick_get();
-
+	gtimer_1ms *timer = timer_tick_get1ms();
+	/*1MS timer, used from Linux as time measurement and clocksource, */
+#if 0
 	cpu_irq_set_enable(INTC_IRQ_TIMER1_MS, FALSE);
-
 	timer->tpir = 232000;
 	timer->tnir = -768000;
+#if 0
 	timer->tldr = timer->tcrr = 0xFFFFFFE0;
 
 	// XXX: for some reason this gives us 1ms instead of the value above 
@@ -130,23 +173,25 @@ void timer_tick_start(cpu_callback handler)
 	timer->tldr = timer->tcrr = -1024 * 64;
 	// timer->tldr = timer->tcrr = 0xFFFFE6FF;    
 	// timer->tldr = timer->tcrr = -1024 * 4;
+#endif
+	/*lower values make linux boot faster as it is not interrupted all the time, higher original values 0xff
+	 *makes the kernel stop working */
+	timer->tldr = 0xfffff000;
+	timer->tcrr = 0xfffff000;	/*counter reg */
 
 	// 
 	tick_handler = handler;
 	cpu_irq_set_handler(INTC_IRQ_TIMER1_MS, timer_tick_handler_stub);
+#endif
 	cpu_irq_set_enable(INTC_IRQ_TIMER1_MS, TRUE);
+	/* Load counter reg and start free running 1ms timer */
+	timer->tcrr = 0;	/*Load counter reg */
+	timer->tclr |= GTIMER_TCLR_START_STOP_CTRL | GTIMER_TCLR_AUTO_RELOAD;	/*Start timer */
 
-	/* clear old status bits, set interrupt type and start it */
-	timer->tisr |=
-	    GTIMER_TISR_MAT_IT_FLAG_CLEAR | GTIMER_TISR_OVT_IT_FLAG_CLEAR |
-	    GTIMER_TISR_TCAR_IT_FLAG_CLEAR;
-	timer->tier = GTIMER_TIER_OVF_IT_EN;
-	timer->tclr |= GTIMER_TCLR_START_STOP_CTRL | GTIMER_TCLR_AUTO_RELOAD;
 }
 
 void timer_tick_stop()
 {
-	gtimer_1ms *timer = timer_tick_get();
 	timer->tclr &= ~GTIMER_TCLR_START_STOP_CTRL;
 }
 
@@ -171,6 +216,7 @@ void soc_timer_init()
 	int i;
 	gtimer *timer;
 
+#if 0
 	// NORMAL TIMERS
 	for (i = 0; i < GTIMER_COUNT; i++) {
 		timer = timer_get(i);
@@ -191,9 +237,7 @@ void soc_timer_init()
 		timer->tclr &= ~GTIMER_TCLR_START_STOP_CTRL;
 		timer->irqenable_set = 0;
 	}
+#endif
+	timer_tick_start(0);
 
-	// 1ms TIMER    
-	// turn it off and clear interrupt
-	timer_tick_stop();
-	timer_tick_clear_interrupt();
 }

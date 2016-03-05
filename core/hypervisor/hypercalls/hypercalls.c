@@ -32,6 +32,7 @@ uint32_t boot = 0;
  * and also gets hardware information from the hypervisor*/
 void hypercall_guest_init(boot_info * info)
 {
+	printf("boot info %x \n", info);
 	uint32_t size = sizeof(boot_info);
 	if (boot != 0)
 		hyper_panic("Guest tried to set boot info twice\n", 1);
@@ -56,6 +57,7 @@ void hypercall_guest_init(boot_info * info)
 	curr_vm->guest_info.vmalloc_end = info->guest.vmalloc_end;
 	curr_vm->guest_info.guest_size = info->guest.guest_size;
 
+	printf("vmalloc_end %x \n", info->guest.vmalloc_end);
 	curr_vm->exception_vector = (uint32_t *) info->guest.page_offset;
 
 #ifdef LINUX

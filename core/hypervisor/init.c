@@ -163,11 +163,15 @@ void memory_init()
 
 void setup_handlers()
 {
+	printf("In setup_handlers \n");
 	/*Direct the exception to the hypervisor handlers */
 	cpu_set_abort_handler((cpu_callback) prefetch_abort_handler,
 			      (cpu_callback) data_abort_handler);
+	printf("abort_handler is READY \n");
 	cpu_set_swi_handler((cpu_callback) swi_handler);
+	printf("swi_handler is READY \n");
 	cpu_set_undef_handler((cpu_callback) undef_handler);
+	printf("undef_handler is READY \n");
 
 	/* Start the timer and direct interrupts to hypervisor irq handler */
 	timer_tick_start((cpu_callback) irq_handler);
@@ -186,7 +190,7 @@ void guests_init()
 	//    dump_mmu(flpt_va); // DEBUG
 
 	/* show guest information */
-	printf("We have %d guests in physical memory area %x %x\n",
+	printf("We have %d guests in physical memory area %x %x \n",
 	       guests_db.count, guests_db.pstart, guests_db.pend);
 
 	for (i = 0; i < guests_db.count; i++) {
@@ -204,10 +208,10 @@ void guests_init()
 #ifdef LINUX
 	vm_0.config = &linux_config;
 	vm_0.config->firmware = get_guest(guest++);
+	//curr_vm->config->pa_initial_l2_offset += curr_vm->config->firmware->psize ;
+	// Hamed old change
 	curr_vm->config->pa_initial_l2_offset +=
 	    curr_vm->config->firmware->psize;
-	// Hamed old change
-	//curr_vm->config->pa_initial_l2_offset += curr_vm->config->firmware->psize - 0x700000;
 	//  linux_init();
 
 #else
@@ -313,7 +317,6 @@ void guests_init()
 	uint32_t offset;
 	for (offset = 0;
 	     offset + SECTION_SIZE <= guest_psize; offset += SECTION_SIZE) {
-
 		dmmu_map_L1_section(guest_vstart + offset,
 				    guest_pstart + offset, attrs);
 	}
@@ -351,13 +354,13 @@ void guests_init()
 		for (i = 0; i < HC_NGUESTMODES; i++) {
 			curr_vm->mode_states[i].mode_config =
 			    (curr_vm->config->guest_modes[i]);
-			curr_vm->mode_states[i].rpc_for = MODE_NONE;
-			curr_vm->mode_states[i].rpc_to = MODE_NONE;
+			//curr_vm->mode_states[i].rpc_for = MODE_NONE;
+			//curr_vm->mode_states[i].rpc_to  = MODE_NONE;
 		}
 		curr_vm->current_guest_mode = MODE_NONE;
 		curr_vm->interrupted_mode = MODE_NONE;
 		curr_vm->current_mode_state = 0;
-		curr_vm->mode_states[HC_GM_INTERRUPT].ctx.psr = ARM_MODE_USER;
+		//curr_vm->mode_states[HC_GM_INTERRUPT].ctx.psr= ARM_MODE_USER;
 		curr_vm = curr_vm->next;
 
 		// let guest know where it is located
@@ -391,15 +394,19 @@ void start_()
 	memory_init();
 
 	/* Initialize hardware */
-	soc_init();
-	board_init();
+	uart_init();
+	printf("UART is READY \n");
 
+	board_init();
+	soc_init();
+	printf("HW is READY \n");
 	/* Setting up exception handlers and starting timer */
 	setup_handlers();
-
+	printf("Handlers are READY \n");
 	/* dmmu init */
 	dmmu_init();
-
+	dump_mmu(flpt_va);
+	printf("DMMU is initialized \n");
 	/* Initialize hypervisor guest modes and data structures
 	 * according to config file in guest*/
 	guests_init();

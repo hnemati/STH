@@ -10,5 +10,7 @@ clean:
 test:
 	cd ../..; make
 	./deploy.sh;
+	#./run.sh --debug
 	./run.sh
+
 

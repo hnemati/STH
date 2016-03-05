@@ -67,7 +67,7 @@ void cpu_init()
 	/* Invalidate and enable cache */
 	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
 	mem_cache_set_enable(TRUE);
-#if 1
+#if  0				/*Seems like this is  not needed for Linux port */
 	//Setup page table pointer 1
 	/* PTWs cacheable, inner WB not shareable, outer WB not shareable */
 	uint32_t pt = (uint32_t) GET_PHYS(__hyper_pt_start__);
@@ -109,7 +109,8 @@ void cpu_init()
 	uint32_t nmrr = 0x40E040e0;	// Normal memory remap register
 	COP_WRITE(COP_SYSTEM, COP_MEMORY_REMAP_PRRR, prrr);
 	COP_WRITE(COP_SYSTEM, COP_MEMORY_REMAP_NMRR, nmrr);
-
+#endif
+#if 1
 	/*   AT
 	 *  TFR   EV X F   I D LR    S
 	 * .EEE ..EE PUI. .T.T 4RVI ZWRS BLDP WCAM
@@ -125,6 +126,7 @@ void cpu_init()
 	/*Setting alignment fault with beagleboard crashes it */
 	//mmu_config |= CR_A; // Set Alignment fault checking
 	COP_WRITE(COP_SYSTEM, COP_SYSTEM_CONTROL, mmu_config);
-	mem_cache_set_enable(TRUE);
 #endif
+	mem_cache_set_enable(TRUE);
+
 }

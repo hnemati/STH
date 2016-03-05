@@ -30,6 +30,13 @@
      
      stmia lr, {r0-lr}^
      mrs r12, spsr
+     
+     /*Virtual Interrupts, save guest virtual IRQ and FIQ into psr (real irq and fiq always on in guest) 
+*/
+     ldr r11, [lr, #4 * INDEX_PSR]
+     and r11, #0xDF
+     orr r12, r11
+     
      str r12, [lr, #4 * INDEX_PSR]    
      .endm
      
@@ -56,6 +63,13 @@
     
      stmia lr, {r0-lr}^
      mrs r12, spsr
+
+/*Virtual Interrupts, save guest virtual IRQ and FIQ into psr (real irq and fiq always on in guest) 
+*/
+     ldr r11, [lr, #4 * INDEX_PSR]
+     and r11, #0xDF
+     orr r12, r11
+     
      str r12, [lr, #4 * INDEX_PSR]    
      ldr lr, [lr, #4 * INDEX_PC]
      .endm
@@ -71,6 +85,8 @@
      str r2, [r0]
      
      ldr r0, [lr, #4 * INDEX_PSR]
+     #and r0,  #0xFFFFFFF0 @Ensure user mode
+     and r0,   #0xFFFFFF30 @Ensure user mode and IRQ and FIQ always enabled 
      msr spsr, r0
      ldmia lr, {r0-lr} ^
      ldr lr, [lr, #4 * INDEX_PC]    

@@ -490,8 +490,13 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 	addr_t phys_start = curr_vm->config->firmware->pstart;
 	uint32_t page_offset = curr_vm->guest_info.page_offset;
 	uint32_t guest_size = curr_vm->config->firmware->psize;
+#if 0				/*Linux 2.6 */
 	uint32_t *l2pt_hw_entry_va =
 	    (addr_t *) ((addr_t) l2pt_linux_entry_va - 0x800);
+#else				/*Linux 3.10.1 */
+	uint32_t *l2pt_hw_entry_va =
+	    (addr_t *) ((addr_t) l2pt_linux_entry_va + 0x800);
+#endif
 	addr_t l2pt_hw_entry_pa =
 	    ((addr_t) l2pt_hw_entry_va - page_offset + phys_start);
 

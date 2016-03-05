@@ -23,8 +23,8 @@ static void soc_clocks_control_safe_enable(volatile uint32_t * p, int clocks)
 
 void soc_ctrl_init()
 {
-	clock_per *per = (clock_per *) CLOCK_PER;
-	clock_wakeup *wkup = (clock_wakeup *) CLOCK_WAKEUP;
+	clock_per *per = (clock_per *) IO_VA_ADDRESS(CLOCK_PER);
+	clock_wakeup *wkup = (clock_wakeup *) IO_VA_ADDRESS(CLOCK_WAKEUP);
 
 	/* TODO: we should first setup PLLs etc. */
 

@@ -61,9 +61,11 @@ int mmu_bft_region_refcnt_equals(addr_t start, size_t size, uint32_t cnt)
 
 void dmmu_init()
 {
+	printf("In dmmu_init \n");
 	uint32_t i;
 	dmmu_entry_t *bft = (dmmu_entry_t *) DMMU_BFT_BASE_VA;
-
+	printf("bft init %x %x %d\n", DMMU_BFT_BASE_VA, DMMU_BFT_BASE_PY,
+	       DMMU_BFT_COUNT);
 	/* clear all entries in the table */
 	for (i = 0; i < DMMU_BFT_COUNT; i++) {
 		bft[i].all = 0;
@@ -85,6 +87,7 @@ BOOL guest_pa_range_checker(pa, size)
 
 BOOL guest_inside_always_cached_region(pa, size)
 {
+#if CHECK_PAGETABLES_CACHEABILITY
 	uint32_t guest_pt_start_pa =
 	    curr_vm->config->firmware->pstart +
 	    curr_vm->config->always_cached_offset;
@@ -94,6 +97,7 @@ BOOL guest_inside_always_cached_region(pa, size)
 		return FALSE;
 
 	return TRUE;
+#endif
 }
 
 BOOL guest_intersect_always_cached_region(pa, size)
@@ -382,8 +386,6 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 	addr_t curr_l1_base_pa_add;
 	int i;
 
-	// checking to see
-
 	/*Check that the guest does not override the physical addresses outside its range */
 	// TODO, where we take the guest assigned physical memory?
 	if (!guest_pa_range_checker(l1_base_pa_add, 4 * PAGE_SIZE))
@@ -618,7 +620,7 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 	l1_desc_va_add = mmu_guest_pa_to_va(l1_desc_pa_add, curr_vm->config);	//PA_PT_ADD_VA(l1_desc_pa_add);
 	l1_desc = *((uint32_t *) l1_desc_va_add);
 
-#if DEBUG_DMMU_MMU_LEVEL > 2
+#if DEBUG_DMMU_MMU_LEVEL > 3
 	printf("--Umpapping %x using %x as %b\n", l1_desc_pa_add,
 	       l1_desc_va_add, l1_desc);
 #endif

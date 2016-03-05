@@ -27,7 +27,7 @@ impl_irq:
     store_context
 
     /* 2. get current interrupt and call it */
-    ldr r0, =INTC_BASE    
+    ldr r0, =INTC_VIRT_BASE
     ldr r0, [r0, #4 * INTC_SIR_IRQ_ADR]
     and r0, r0, #0x7f
     
@@ -38,12 +38,10 @@ impl_irq:
     blx r12
     
     /* 4. reset interrupt */
-    ldr r0, =INTC_BASE
+    ldr r0, =INTC_VIRT_BASE
     ldr r1, =INTC_CONTROL_NEWIRQAGR
     str r1, [r0, #4 * INTC_CONTROL]
 
-
-        
     /* 5. restore context 
      * note: this code is shared with some other
      * exception handlers */    
@@ -62,8 +60,8 @@ impl_pabort:
     ldr r3, =family_callback_inst_abort        
     ldr r3, [r3]
     
-    mrc p15, 0, r0, c6, c0, 0
-    mrc p15, 0, r1, c5, c0, 1    
+	mrc p15, 0, r0, c6, c0, 2	@get IFAR
+    mrc p15, 0, r1, c5, c0, 1   @get IFSR
     mov r2, lr
     
     ldr lr, =exception_bottom
@@ -77,8 +75,8 @@ impl_dabort:
     ldr r3, =family_callback_data_abort
     ldr r3, [r3]
     
-    mrc p15, 0, r0, c6, c0, 0
-    mrc p15, 0, r1, c5, c0, 0
+    mrc p15, 0, r0, c6, c0, 0	@get FAR
+    mrc p15, 0, r1, c5, c0, 0	@get FSR
     mov r2, lr
     
     ldr lr, =exception_bottom
@@ -108,8 +106,8 @@ impl_swi:
 
     /* XXX: this only works from 32-bit mode */
     sub r11, lr, #4    
-    ldr r2, [r11]
-    bic r2, r2, #0xFF000000
+    ldr r3, [r11]
+    bic r3, r3, #0xFF000000
 
     ldr lr, =exception_bottom
     bx r12

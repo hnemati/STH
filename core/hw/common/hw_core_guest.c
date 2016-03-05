@@ -12,7 +12,7 @@ struct guest_binary *get_guest(int index)
 	if (index < 0 || index >= guests_db.count)
 		return NULL;
 	guest = &guests_db.guests[index];
-
+	printf("guest db %x \n", &guests_db.guests[index]);
 	if (guest->psize <= 0)
 		return NULL;
 	return guest;

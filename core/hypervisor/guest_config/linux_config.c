@@ -13,7 +13,6 @@
  */
 #define HC_GM_TRUSTED_MASK   (1 << HC_GM_TRUSTED)
 #define HC_GM_KERNEL_MASK    (1 << HC_GM_KERNEL)
-#define HC_GM_INTERRUPT_MASK (1 << HC_GM_INTERRUPT)
 #define HC_GM_TASK_MASK      (1 << HC_GM_TASK)
 
 /*
@@ -35,11 +34,6 @@
   ((1 << (2 * HC_DOM_DEFAULT)) |		\
    (1 << (2 * HC_DOM_TRUSTED)))
 
-#define HC_DOMAC_INTERRUPT			\
-  ((1 << (2 * HC_DOM_DEFAULT)) |		\
-   (1 << (2 * HC_DOM_KERNEL)) |			\
-   (1 << (2 * HC_DOM_TASK)))
-
 #define HC_DOMAC_TASK				\
   ((1 << (2 * HC_DOM_DEFAULT)) |		\
    (1 << (2 * HC_DOM_TASK)))
@@ -55,8 +49,7 @@ static const hc_guest_mode gm_trusted = {
 	.domain_ac = HC_DOMAC_TRUSTED,
 }, gm_kernel = {
 .name = "kernel",.domain_ac = HC_DOMAC_KERNEL,}, gm_task = {
-.name = "application",.domain_ac = HC_DOMAC_TASK,}, gm_interrupt = {
-.name = "interrupt",.domain_ac = HC_DOMAC_INTERRUPT,};
+.name = "application",.domain_ac = HC_DOMAC_TASK,};
 
 /*RPC handler*/
 static const hc_rpc_handler rpc_handler_trusted = {
@@ -72,17 +65,13 @@ static const hc_rpc_handler rpc_handler_trusted = {
 
 hc_config linux_config = {
 	.guest_entry_offset = 0x10000,
-	.guest_modes = {&gm_trusted, &gm_kernel, &gm_task, &gm_interrupt},
+	.guest_modes = {&gm_trusted, &gm_kernel, &gm_task},
 	.rpc_handlers = &rpc_handler_trusted,
 	.reserved_va_for_pt_access_start = 0xE8000000,
 	// Offset respect the initial pa of the guest
-	//.pa_initial_l1_offset = 0x00004000, // Offset to master page table in Linux
-	.pa_initial_l1_offset = 0x00000000,	// Offset to master page table in Linux
-	//.pa_initial_l1_offset = 0x6800000, // Offset to master page table in Linux
+	.pa_initial_l1_offset = 0x00004000,	// Offset to master page table in Linux
 	/*L2 offset is the end of the guest physical memory, 1MB */
 	.pa_initial_l2_offset = 0x0,
-	//.always_cached_offset = 0x6800000,
-	.always_cached_offset = 0x0,
-	//.always_cached_size = (0x6A00000 - 0x6800000)
-	.always_cached_size = (0x6A00000 - 0x0)
+	//.always_cached_offset = 0x0,
+	//.always_cached_size = (0x6A00000 - 0x0)
 };

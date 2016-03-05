@@ -35,6 +35,7 @@ void hypercall_set_tls(uint32_t thread_id)
 	/*ARM 926 does not have this function */
 #if ARM_ARCH > 5
 	COP_WRITE(COP_SYSTEM, COP_SOFTWARE_THREAD_ID_USER_R, thread_id);
+	COP_WRITE(COP_SYSTEM, COP_SOFTWARE_THREAD_ID_USER_RW, 0);
 #endif
 
 }

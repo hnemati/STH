@@ -13,6 +13,7 @@ void hypercall_num_error(uint32_t hypercall_num);
 void change_guest_mode(uint32_t mode);
 
 void hypercall_guest_init();
+void hypercall_guest_mem();
 void hypercall_interrupt_set(uint32_t interrupt, uint32_t op);
 void hypercall_end_interrupt();
 
@@ -67,6 +68,7 @@ void hypercall_end_rpc();
 #define HYPERCALL_INTERRUPT_SET     	1001
 #define HYPERCALL_END_INTERRUPT     	1002
 //#define HYPERCALL_REGISTER_HANDLER    1003
+#define HYPERCALL_INTERRUPT_CTRL		1003
 
 /*CACHE */
 #define HYPERCALL_CACHE_OP				1004
@@ -88,4 +90,7 @@ void hypercall_end_rpc();
      /*RPC*/
 #define HYPERCALL_RPC					1020
 #define HYPERCALL_END_RPC				1021
+     /*VFP*/
+#define HYPERCALL_VFP					1022
+#define HYPERCALL_DBG					1030
 #endif				/* HYPERCALLS_H_ */

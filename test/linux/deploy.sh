@@ -1,8 +1,8 @@
 #!/bin/bash
 IMG_NAME=beagle_sd_working.img
-IMG_DIR=../../../sth_deps
+IMG_DIR=../../../../sth_deps
 IMG_FILE=$IMG_DIR/$IMG_NAME
-MNT_POINT=../../../mnt/
+MNT_POINT=../../../../mnt/
 
 if [ -f $IMG_FILE ];
 then
@@ -22,5 +22,5 @@ fi
 
 echo "creating the SD image"
 sudo mount -o loop,offset=$[106496*512] $IMG_FILE $MNT_POINT
-sudo cp ../../core/build/sth_beagleboard.fw.img $MNT_POINT/boot/uImage
+sudo cp ../../core/build/sth_beaglebone.fw.img $MNT_POINT/boot/uImage
 sudo umount $MNT_POINT

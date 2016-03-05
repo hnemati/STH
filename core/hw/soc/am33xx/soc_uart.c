@@ -145,7 +145,7 @@ void soc_uart_set(uint32_t * base, int pad_rx, int pad_tx, int pad_cts,
 	// 1. use uart3
 	uart_ = (uart_registers *) base;
 	uart = uart_;
-
+#if 0
 	// 2. set pad mode    
 	if (pad_rx > 0)
 		gpio_set_pad_configuration(pad_rx, 0, TRUE, FALSE, FALSE);
@@ -172,12 +172,13 @@ void soc_uart_set(uint32_t * base, int pad_rx, int pad_tx, int pad_cts,
 	uart->op.iir /* FCR */  =
 	    UART_FCR_FIFO_EN | UART_FCR_RX_CLEAR | UART_FCR_TX_CLEAR;
 	uart->op.mdr1 = UART_MDR1_MODE_UART16;
+#endif
 }
 
 void soc_uart_init()
 {
 	// now, configure UART0:
-	soc_uart_set(UART0_BASE,
+	soc_uart_set(IO_VA_ADDRESS(UART0_BASE),
 		     CONTROL_MODULE_PADCONFIG_UART0_RDX,
 		     CONTROL_MODULE_PADCONFIG_UART0_TXD,
 		     CONTROL_MODULE_PADCONFIG_UART0_CTSN,

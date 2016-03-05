@@ -319,10 +319,15 @@ void hypercall_new_pgd(addr_t * pgd)
 	uint32_t pgd_size = 0x4000;
 
 	/*Check page address */
-	if ((uint32_t) pgd < PAGE_OFFSET
-	    || (uint32_t) pgd > (uint32_t) (HAL_VIRT_START - pgd_size))
+	if ((uint32_t) pgd < PAGE_OFFSET)
 		hyper_panic
 		    ("New page global directory does not reside in kernel address space\n",
+		     1);
+
+	if ((uint32_t) pgd >= HAL_VIRT_START
+	    && (uint32_t) pgd < HAL_VIRT_START + MAX_TRUSTED_SIZE)
+		hyper_panic
+		    ("New page global directory resides in sensitive address space",
 		     1);
 
 	//    printf("\n\tLinux kernel NEW PGD: %x\n", pgd);
@@ -416,14 +421,14 @@ void hypercall_set_pmd(addr_t * pmd, uint32_t val)
 	/*Security Checks */
 	uint32_t pa = MMU_L1_SECTION_ADDR(val);
 
-	/*Check virtual address */
-	if ((uint32_t) pmd < PAGE_OFFSET
-	    || (uint32_t) pmd >
-	    (uint32_t) (HAL_VIRT_START - sizeof(uint32_t)))
-		hyper_panic
-		    ("Page middle directory reside outside of allowed address space !\n",
-		     1);
 	if (val != 0) {
+		/*Check virtual address */
+		if ((uint32_t) pmd < PAGE_OFFSET
+		    || (uint32_t) pmd >
+		    (uint32_t) (HAL_VIRT_START - sizeof(uint32_t)))
+			hyper_panic
+			    ("Page middle directory reside outside of allowed address space !\n",
+			     1);
 		/*Check physical address */
 		if (!(pa >= (PHYS_OFFSET) && pa < (PHYS_OFFSET + guest_size))) {
 			printf("Address: %x\n", pa);

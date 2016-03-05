@@ -19,6 +19,7 @@ typedef void (*pabort_handler_fn) (void);
 /*Boot information from guest that hypervisor needs*/
 
 typedef struct guest_info_ {
+	uint32_t *vector_table;
 	uint32_t nr_syscalls;
 	uint32_t page_offset;
 	uint32_t phys_offset;

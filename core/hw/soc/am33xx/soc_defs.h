@@ -2,10 +2,17 @@
 #ifndef _SOC_DEFS_H_
 #define _SOC_DEFS_H_
 
-#define IO_VA_ADDRESS(x)	(x)	/*Currently IO has 1:1 Mapping */
+#define IO_BASE 				0xF0000000
+
+/*AM33X uses 2 virtual offsets in Linux*/
+#define IO_OMAP2_L4_IO_OFFSET		0xB2000000
+#define IO_AM33X_L4_OFFSET			0xB5000000
+#define IO_VA_ADDRESS(x)			((x) + IO_AM33X_L4_OFFSET)
+#define IO_VA_OMAP2_L4_ADDRESS(x)	((x) + IO_OMAP2_L4_IO_OFFSET)
 
 /* INTERRUPTS */
 #define INTC_BASE 0x48200000
+#define INTC_VIRT_BASE (IO_VA_OMAP2_L4_ADDRESS(INTC_BASE))
 #define INTC_SOURCE_COUNT 128
 
 #define INTC_SIR_IRQ_ADR 0x10

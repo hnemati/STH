@@ -1486,7 +1486,7 @@ static BOOL is_data_buffer_secure(uint32_t bd_ptr, BOOL transmit)
 	   guest_end_address
 
 	   HAL_VIRT_START is mapped to HAL_PHYS_START in core/hw/cpu/arm/arm_common/arm_pt.S.
-	   HAL_VIRT_START = 0xFF000000 = Start of virtual address space where the hypervisor is located. See core/hw/ld/virt-hyper.ld.
+	   HAL_VIRT_START = 0xF0000000 = Start of virtual address space where the hypervisor is located. See core/hw/ld/virt-hyper.ld.
 	   HAL_PHYS_START = 0x80000000 = Start of physical address space where the hypervisor is located. See core/config/hw/beaglebone.cfg.
 	   The hypervisors virtual memory region begins at 0xFF000000 and ends one MiB after that at 0xFF100000 (exclusively). See core/hw/ld/virt-hyper.ld.
 

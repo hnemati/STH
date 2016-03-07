@@ -6,7 +6,7 @@ extern virtual_machine *curr_vm;
 #define USE_DMMU
 
 // Disabling aggressive flushing
-//#define AGGRESSIVE_FLUSHING_HANDLERS
+#define AGGRESSIVE_FLUSHING_HANDLERS
 
 void clean_and_invalidate_cache()
 {
@@ -109,7 +109,6 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 			return;
 		case HYPERCALL_DBG:
 			printf("To here %x\n", param0);
-			//hypercall_guest_mem(param0);
 			return;
 		case HYPERCALL_GUEST_INIT:
 			hypercall_guest_init(param0);
@@ -145,46 +144,51 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 			/*Page table operations */
 		case HYPERCALL_SWITCH_MM:
 			clean_and_invalidate_cache();
-			printf("1 \n");
 			hypercall_dyn_switch_mm(param0, param1);
-
-			clean_and_invalidate_cache();
-
+			//clean_and_invalidate_cache();
 			return;
 
 		case HYPERCALL_NEW_PGD:
 			clean_and_invalidate_cache();
-			printf("2 \n");
 			hypercall_dyn_new_pgd((uint32_t *) param0);
-
-			clean_and_invalidate_cache();
-
+			//clean_and_invalidate_cache();
 			return;
 		case HYPERCALL_FREE_PGD:
 			clean_and_invalidate_cache();
-			printf("3 \n");
 			hypercall_dyn_free_pgd((uint32_t *) param0);
-
-			clean_and_invalidate_cache();
-
+			//clean_and_invalidate_cache();
 			return;
 		case HYPERCALL_CREATE_SECTION:
-			return;
+			{
+				addr_t phys_start =
+				    curr_vm->config->firmware->pstart;
+				uint32_t guest_size =
+				    curr_vm->config->firmware->psize;
+				if (param1 != 0) {	/*If 0, then its a remove mapping */
+					/*Check physical address */
+					if (!
+					    (param1 >= (phys_start)
+					     && param1 <
+					     (phys_start + guest_size))) {
+						printf
+						    ("Address: va:%x pa:%x\n",
+						     param0, param1);
+						//hyper_panic("Guest trying does not own pte physical address", 1);
+					}
+				}
+				return;
+			}
+
 		case HYPERCALL_SET_PMD:
 			clean_and_invalidate_cache();
-			printf("4 \n");
 			hypercall_dyn_set_pmd(param0, param1);
-
-			clean_and_invalidate_cache();
-
+			//clean_and_invalidate_cache();
 			return;
 		case HYPERCALL_SET_PTE:
 			clean_and_invalidate_cache();
-			printf("4 \n");
 			hypercall_dyn_set_pte((uint32_t *) param0, param1,
 					      param2);
-
-			clean_and_invalidate_cache();
+			//clean_and_invalidate_cache();
 			return;
 
     /****************************/

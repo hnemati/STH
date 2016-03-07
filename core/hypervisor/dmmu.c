@@ -61,7 +61,6 @@ int mmu_bft_region_refcnt_equals(addr_t start, size_t size, uint32_t cnt)
 
 void dmmu_init()
 {
-	printf("In dmmu_init \n");
 	uint32_t i;
 	dmmu_entry_t *bft = (dmmu_entry_t *) DMMU_BFT_BASE_VA;
 	printf("bft init %x %x %d\n", DMMU_BFT_BASE_VA, DMMU_BFT_BASE_PY,

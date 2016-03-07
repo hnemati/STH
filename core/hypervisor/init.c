@@ -62,7 +62,6 @@ void dump_mmu(addr_t adr)
 	uint32_t *t = (uint32_t *) adr;
 	int i;
 
-	printf("  (L1 is at %x)\n", adr);
 	for (i = 0; i < 4096; i++) {
 		uint32_t x = t[i];
 		switch (x & 3) {
@@ -163,7 +162,6 @@ void memory_init()
 
 void setup_handlers()
 {
-	printf("In setup_handlers \n");
 	/*Direct the exception to the hypervisor handlers */
 	cpu_set_abort_handler((cpu_callback) prefetch_abort_handler,
 			      (cpu_callback) data_abort_handler);
@@ -195,7 +193,7 @@ void guests_init()
 
 	for (i = 0; i < guests_db.count; i++) {
 		printf("Guest_%d: PA=%x+%x VA=%x FWSIZE=%x\n", i,
-		       // initial phisical address of the guest
+		       // initial physical address of the guest
 		       guests_db.guests[i].pstart,
 		       // size in bytes of the guest
 		       guests_db.guests[i].psize,
@@ -208,8 +206,6 @@ void guests_init()
 #ifdef LINUX
 	vm_0.config = &linux_config;
 	vm_0.config->firmware = get_guest(guest++);
-	//curr_vm->config->pa_initial_l2_offset += curr_vm->config->firmware->psize ;
-	// Hamed old change
 	curr_vm->config->pa_initial_l2_offset +=
 	    curr_vm->config->firmware->psize;
 	//  linux_init();
@@ -307,7 +303,6 @@ void guests_init()
 	/*Maps PA-PA for boot and VA-PA for kernel
 	 * First MB of pa mapped as L2PT with page 1-7 RO (private L2PT and master page)*/
 	linux_init_dmmu();
-
 #else
 	attrs = 0x12;		// 0b1--10
 	attrs |= MMU_AP_USER_RW << MMU_SECTION_AP_SHIFT;
@@ -395,18 +390,14 @@ void start_()
 
 	/* Initialize hardware */
 	uart_init();
-	printf("UART is READY \n");
 
 	board_init();
 	soc_init();
-	printf("HW is READY \n");
 	/* Setting up exception handlers and starting timer */
 	setup_handlers();
-	printf("Handlers are READY \n");
 	/* dmmu init */
 	dmmu_init();
 	dump_mmu(flpt_va);
-	printf("DMMU is initialized \n");
 	/* Initialize hypervisor guest modes and data structures
 	 * according to config file in guest*/
 	guests_init();

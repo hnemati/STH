@@ -177,6 +177,8 @@ void linux_init_dmmu()
 	addr_t guest_vstart = curr_vm->config->firmware->vstart;
 	addr_t guest_pstart = curr_vm->config->firmware->pstart;
 	addr_t guest_psize = curr_vm->config->firmware->psize;
+	printf("Linux mem info %x %x %x \n", guest_vstart, guest_pstart,
+	       guest_psize);
 	/*Linux specific mapping */
 	/*Section page with user RW in kernel domain with Cache and Buffer */
 	sect_attrs = MMU_L1_TYPE_SECTION;
@@ -195,24 +197,15 @@ void linux_init_dmmu()
 	uint32_t offset;
 	/*Can't map from offset = 0 because start addresses contains page tables */
 	/*Maps PA-PA for boot */
-	/*  /\
-	 *  ||
-	 * The above comment is not valid any more since page tables are moved to always cacheable region
-	 */
-	for (offset = 0;	// SECTION_SIZE;
+
+	for (offset = SECTION_SIZE;	//0;
 	     offset + SECTION_SIZE <= guest_psize; offset += SECTION_SIZE) {
 
-		if (guest_pstart + offset >> 20 == 0x879)
-			dmmu_map_L1_section(guest_pstart + offset,
-					    guest_pstart + offset,
-					    sect_attrs_ro);
-		else
-			dmmu_map_L1_section(guest_pstart + offset,
-					    guest_pstart + offset,
-					    sect_attrs);
+		dmmu_map_L1_section(guest_pstart + offset,
+				    guest_pstart + offset, sect_attrs);
 	}
 	/*Maps VA-PA for kernel */
-	for (offset = 0;	// SECTION_SIZE;
+	for (offset = SECTION_SIZE;	//0;
 	     offset + SECTION_SIZE <= (guest_psize - SECTION_SIZE * 16);
 	     offset += SECTION_SIZE) {
 		dmmu_map_L1_section(guest_vstart + offset,
@@ -265,19 +258,11 @@ void linux_init_dmmu()
 		uint32_t page_pa;
 		for (i = table2_idx, page_pa = offset; i < end;
 		     i++, page_pa += 0x1000) {
-			// Why these constant? the result are not checked
-			if (!
-			    (curr_vm->config->pa_initial_l2_offset <= page_pa
-			     && page_pa <=
-			     (curr_vm->config->
-			      pa_initial_l2_offset | 0x0000F000)))
-				dmmu_l2_map_entry(table2_pa, i,
-						  page_pa + guest_pstart,
-						  small_attrs);
-			else
-				dmmu_l2_map_entry(table2_pa, i,
-						  page_pa + guest_pstart,
-						  small_attrs_ro);
+			if (dmmu_l2_map_entry
+			    (table2_pa, i, page_pa + guest_pstart,
+			     small_attrs))
+				printf
+				    ("\n\tCould not map L2 entry in new pgd\n");
 		}
 
 	}

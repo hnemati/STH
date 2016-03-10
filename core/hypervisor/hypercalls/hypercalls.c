@@ -57,7 +57,9 @@ void hypercall_guest_init(boot_info * info)
 	curr_vm->guest_info.vmalloc_end = info->guest.vmalloc_end;
 	curr_vm->guest_info.guest_size = info->guest.guest_size;
 
-	printf("vmalloc_end %x \n", info->guest.vmalloc_end);
+	printf("vmalloc_end %x %x %x %x\n", info->guest.vmalloc_end,
+	       info->guest.guest_size, info->guest.phys_offset,
+	       info->guest.page_offset);
 	curr_vm->exception_vector = (uint32_t *) info->guest.page_offset;
 
 #ifdef LINUX

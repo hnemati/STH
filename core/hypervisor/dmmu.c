@@ -537,6 +537,8 @@ uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
  *  -------------------------------------------------------------------*/
 int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 {
+	printf("I am called %s va:%x l2_base:%x attrs:%x \n", __func__, va,
+	       l2_base_pa_add, attrs);
 	uint32_t l1_base_add;
 	uint32_t l1_idx;
 	uint32_t l1_desc_pa_add;
@@ -759,6 +761,7 @@ void create_L2_pgtype_update(uint32_t l2_base_pa_add)
 
 uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 {
+	printf("I am called %s  l2_base:%x \n", __func__, l2_base_pa_add);
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -806,11 +809,11 @@ uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 		     (l2_type, l2_desc, l2_base_pa_add));
 
 		if (current_check != SUCCESS_MMU) {
-#if DEBUG_DMMU_MMU_LEVEL > 1
+//#if DEBUG_DMMU_MMU_LEVEL > 1
 			printf("Sanity checker error %d!: %d : %x : %x\n",
 			       current_check, l2_idx, l2_desc_pa_add,
 			       l2_desc);
-#endif
+//#endif
 			if (sanity_checker == SUCCESS_MMU)
 				sanity_checker = current_check;
 		}
@@ -885,7 +888,7 @@ int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 		      addr_t page_pa_add, uint32_t attrs)
 {
-
+	//printf("I am called %s l2_base:%x idx:%x pg_pa:%x attrs:%x \n", __func__, l2_base_pa_add, l2_idx, page_pa_add, attrs);
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -985,6 +988,7 @@ int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 //#define SW_DEBUG
 int dmmu_switch_mm(addr_t l1_base_pa_add)
 {
+	printf("I am called %s  l1_base:%x \n", __func__, l1_base_pa_add);
 	int i;
 	uint32_t ph_block;
 

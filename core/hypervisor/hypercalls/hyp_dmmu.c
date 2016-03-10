@@ -5,7 +5,7 @@
 
 extern virtual_machine *curr_vm;
 
-#if 0
+#if 1
 #define DEBUG_MMU
 #endif
 
@@ -257,7 +257,7 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 {
 #ifdef DEBUG_MMU
-	printf("\n\t\t\tHypercall set PMD\n\t\t pmd:%x val:%x ", pmd, desc);
+	printf("Hypercall set PMD pmd:%x val:%x \n", pmd, desc);
 #endif
 	uint32_t switch_back = 0;
 	addr_t l1_entry, *l1_pt_entry_for_desc;
@@ -397,9 +397,11 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		     desc_pa, ro_attrs))
 			printf("\n\tCould not map L2 entry in set PMD\n");
 	}
+	uint32_t err;
 	if (desc != 0) {
-		if (dmmu_create_L2_pt(MMU_L2_SMALL_ADDR(desc))) {
-			printf("\n\tCould not create L2PT in set pmd\n");
+		if ((err = (dmmu_create_L2_pt(MMU_L2_SMALL_ADDR(desc))))) {
+			printf("\n\tCould not create L2PT in set pmd %x\n",
+			       err);
 		}
 	}
 
@@ -483,9 +485,8 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 			   uint32_t phys_pte)
 {
 #ifdef DEBUG_MMU
-	printf
-	    ("\n\t\t\tHypercall set PTE\n\t\t va:%x linux_pte:%x phys_pte:%x ",
-	     l2pt_linux_entry_va, phys_pte, linux_pte);
+	printf("Hypercall set PTE va:%x linux_pte:%x phys_pte:%x \n",
+	       l2pt_linux_entry_va, phys_pte, linux_pte);
 #endif
 	addr_t phys_start = curr_vm->config->firmware->pstart;
 	uint32_t page_offset = curr_vm->guest_info.page_offset;
@@ -506,10 +507,13 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 	/*Check virtual address */
 	if ((uint32_t) l2pt_hw_entry_va < page_offset
 	    || (uint32_t) l2pt_linux_entry_va >
-	    (uint32_t) (HAL_VIRT_START - sizeof(uint32_t)))
+	    (uint32_t) (HAL_VIRT_START - sizeof(uint32_t))) {
 		hyper_panic
 		    ("Page table entry reside outside of allowed address space !\n",
 		     1);
+		printf("%s ErRor va:%x pgf:%x", __func__,
+		       (uint32_t) l2pt_hw_entry_va, page_offset);
+	}
 
 	if (phys_pte != 0) {	/*If 0, then its a remove mapping */
 		/*Check physical address */
@@ -523,7 +527,6 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 
 	/*Get index of physical L2PT */
 	uint32_t entry_idx = ((addr_t) l2pt_hw_entry_va & 0xFFF) >> 2;
-
 	/*Small page with CB on and RW */
 	uint32_t attrs = phys_pte & 0xFFF;	/*Mask out address */
 	uint32_t err;
@@ -535,12 +538,17 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 			if (err == ERR_MMU_PT_NOT_UNMAPPED) {
 				/*So DMMU API does not allow changing attributes or remapping an entry if its not empty
 				 *this is a workaround */
-				dmmu_l2_unmap_entry(l2pt_hw_entry_pa &
-						    L2_BASE_MASK, entry_idx);
-				dmmu_l2_map_entry(l2pt_hw_entry_pa &
-						  L2_BASE_MASK, entry_idx,
-						  MMU_L1_PT_ADDR(phys_pte),
-						  attrs);
+				uint32_t res =
+				    dmmu_l2_unmap_entry(l2pt_hw_entry_pa &
+							L2_BASE_MASK,
+							entry_idx);
+				printf("dmmu_l2_unmap_entry res:%x", res);
+				res =
+				    dmmu_l2_map_entry(l2pt_hw_entry_pa &
+						      L2_BASE_MASK, entry_idx,
+						      MMU_L1_PT_ADDR
+						      (phys_pte), attrs);
+				printf("dmmu_l2_map_entry res:%x", res);
 			} else {
 				printf
 				    ("\n\tCould not map l2 entry in set pte hypercall\n");
@@ -548,6 +556,7 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 		}
 		/*Cannot map linux entry, ap = 0 generates error */
 		//dmmu_l2_map_entry(l2pt_hw_entry_pa & L2_BASE_MASK, entry_idx + (256*2), MMU_L1_PT_ADDR(phys_pte),linux_pte & 0xFFF);
+		printf("dmmu_l2_map_entry err:%x \n", err);
 	} else {
 		/*Unmap */
 		if (dmmu_l2_unmap_entry
@@ -558,6 +567,19 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 	/*Do we need to use the DMMU API to set Linux pages? */
 	*l2pt_linux_entry_va = linux_pte;
 
-	//COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t)l2pt_hw_entry_va );
-	CacheDataInvalidateBuff((uint32_t) l2pt_hw_entry_va, 4);
+	COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA,
+		  (uint32_t) l2pt_hw_entry_va);
+	//CacheDataInvalidateBuff((uint32_t)l2pt_hw_entry_va,4);
+	dsb();
+
+/*  uint32_t *guest_pt_va;
+  addr_t guest_pt_pa;
+  guest_pt_pa = phys_start + curr_vm->config->pa_initial_l1_offset;
+  guest_pt_va = mmu_guest_pa_to_va(guest_pt_pa, curr_vm->config);
+  uint32_t index;
+  for (index=0; index<4096; index++) {
+      if(*(guest_pt_va + index) != 0x0)
+        printf("add %x %x \n", index , *(guest_pt_va + index)); //(flpt_va + index)
+    }*/
+
 }

@@ -5,7 +5,7 @@
 #include "hw_core_mem.h"
 #include "dmmu.h"
 
-//#define DEBUG_PG_CONTENT
+#define DEBUG_PG_CONTENT
 #define DEBUG_L1_PG_TYPE
 /*
  * Function prototypes
@@ -318,7 +318,7 @@ void guests_init()
 
 #endif
 	printf("vm_0 pagetable after initialization:\n");	// DEBUG
-	//    dump_mmu(guest_pt_va); // DEBUG
+	//dump_mmu(guest_pt_va); // DEBUG
 
 	mem_mmu_tlb_invalidate_all(TRUE, TRUE);
 	mem_cache_invalidate(TRUE, TRUE, TRUE);	//instr, data, writeback
@@ -397,7 +397,6 @@ void start_()
 	setup_handlers();
 	/* dmmu init */
 	dmmu_init();
-	dump_mmu(flpt_va);
 	/* Initialize hypervisor guest modes and data structures
 	 * according to config file in guest*/
 	guests_init();

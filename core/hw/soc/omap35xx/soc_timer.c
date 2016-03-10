@@ -162,8 +162,8 @@ void timer_tick_start(cpu_callback handler)
 	/*DMTIMER as timer tick */
 
 	cpu_irq_set_enable(INTC_IRQ_TIMER7, FALSE);
-	//timer = timer_tick_get();
-	timer = timer_get(12);
+	timer = timer_tick_get();
+	//timer = timer_get(12);
 
 	/*    volatile uint32_t *gpt12_ick = 0xfa004c10;
 	   uint32_t v;

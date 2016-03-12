@@ -179,3 +179,164 @@ void mem_cache_dcache_area(addr_t va, uint32_t size, uint32_t op)
 
 	dsb();
 }
+
+/////////
+/*
+ *@start: Start virtual address.
+ *
+ *@end: End virtual address (exclusive).
+ *
+ *Function: For caches containing data:
+ *1.Cleans and invalidates the cache line containing the start address if
+ *it is not cache line size aligned. The cleaning is done since the first
+ *cache line may contain other data not beloning to the DMA region if it
+ *is not cache line size aligned.
+ *2.Cleans and invalidates the cache line containing the end address if it
+ *is not cache line size aligned. The cleaning is done since the last
+ *cache line may contain other data not beloning to the DMA region if it
+ *is not cache line size aligned.
+ *3.Invalidates all cache lines whose cache line aligned addresses are
+ *greater than or equal to the cache line size aligned address
+ *corresponding to the start address, and less than the cache line size
+ *aligned address corresponding to the end address. This means that the
+ *end address is exclusive.
+ */
+void inv_dcache_region(addr_t start, addr_t end)
+{
+	uint32_t ctr, min_data_cache_line_size, min_data_cache_line_mask;
+
+	//ctr := CTR, Cache Type Register.
+	COP_READ(COP_SYSTEM, COP_ID_CACHE_CONTROL_ARMv7_CLIDR, ctr);
+
+	//ctr := ctr >> 16. This is the bit offset of the DminLine field of CTR.
+	ctr >>= 16;
+
+	//ctr := CTR.DminLine;
+	//Log2 of the number of words in the smallest cache line of all the data
+	//caches and unified caches that are controlled by the processor. Hence the
+	//cache line size is a power of two. Minimum cache line size is needed to
+	//prevent skipping a cache line in the loop.
+	ctr &= 0xF;
+
+	//Cache line size in bytes: 2^ctr * 4 =
+	//(1 << ctr) * 4 = (1 << ctr) << 2 = 1 << (ctr + 2) =
+	//1 << (2 + ctr) = (1 << 2) << ctr = 4 << ctr
+	min_data_cache_line_size = 4 << ctr;
+
+	//Cache line size is a power of two. Gives ones below the bit that is set
+	//to denote the size. Hence a sort of a mask is stored in r3 that
+	//identifies the byte addresses of a cache line.
+	min_data_cache_line_mask = min_data_cache_line_size - 1;
+
+	//If the start address is not cache line size aligned, then it is masked to
+	//be cache line size aligned, and the cache line containing the word at
+	//address start might contain data not pertaining to the invalidation
+	//region, and hence that cache line is cleaned and then invalidated.
+	if (start & min_data_cache_line_mask) {
+		//Makes the start address cache line size aligned.
+		start = start & ~min_data_cache_line_mask;
+
+		//DCCIMVAC, Clean and invalidate data (or unified) cache line by MVA to
+		//PoC. Invalidates cache line containing the start address.
+		COP_WRITE(COP_SYSTEM, COP_DCACHE_CLEAN_INVALIDATE_MVA, start);
+	}
+	//If the end address is not cache line size aligned, then it is masked to
+	//be cache line size aligned, and the cache line containing the word at
+	//address end might contain data not pertaining to the invalidation
+	//region, and hence that cache line is cleaned and then invalidated.
+	if (end & min_data_cache_line_mask) {
+		//Makes the end address cache line size aligned.
+		end = end & ~min_data_cache_line_mask;
+
+		//DCCIMVAC, Clean and invalidate data (or unified) cache line by MVA to
+		//PoC. Invalidates cache line containing the start address.
+		COP_WRITE(COP_SYSTEM, COP_DCACHE_CLEAN_INVALIDATE_MVA, end);
+	}
+	//Invalidates data cache lines containing words at addresses in the
+	//interval [start, end) (for values in start and end at this execution
+	//point).
+	do {
+		//DCIMVAC, Invalidate data (or unified) cache line by MVA to PoC.
+		//Invalidates the cache line holding the word at address start.
+		//Executes: MCR p15, 0, start, c7, c6, 1;
+		COP_WRITE(COP_SYSTEM, COP_DCIMVAC, start);
+
+		//Increments the cache line size aligned address in start with the
+		//value of the minimum cache line size.
+		start += min_data_cache_line_size;
+	} while (start < end);
+
+	//Data Synchronization Barrier acts as a special kind of memory barrier. No
+	//instruction in program order after this instruction executes until this
+	//instruction completes. This instruction completes when:
+	//• All explicit memory accesses before this instruction complete.
+	//• All Cache, Branch predictor and TLB maintenance operations before this
+	//  instruction complete.
+	dsb();
+}
+
+////////
+
+////////
+/*
+ *@start: Start virtual address.
+ *
+ *@end: End virtual address (exclusive).
+ *
+ *Function: Cleans cache lines containing data starting at the address @start
+ *and ending at @end. @end is exclusive but is cleaned if it is not the first
+ *word of a cache line.
+ */
+void clean_dcache_region(addr_t start, addr_t end)
+{
+	uint32_t ctr, min_data_cache_line_size, min_data_cache_line_mask;
+
+	//ctr := CTR, Cache Type Register.
+	COP_READ(COP_SYSTEM, COP_ID_CACHE_CONTROL_ARMv7_CLIDR, ctr);
+
+	//ctr := ctr >> 16. This is the bit offset of the DminLine field of CTR.
+	ctr >>= 16;
+
+	//ctr := CTR.DminLine;
+	//Log2 of the number of words in the smallest cache line of all the data
+	//caches and unified caches that are controlled by the processor. Hence the
+	//cache line size is a power of two. Minimum cache line size is needed to
+	//prevent skipping a cache line in the loop.
+	ctr &= 0xF;
+
+	//Cache line size in bytes: 2^ctr * 4 =
+	//(1 << ctr) * 4 = (1 << ctr) << 2 = 1 << (ctr + 2) =
+	//1 << (2 + ctr) = (1 << 2) << ctr = 4 << ctr
+	min_data_cache_line_size = 4 << ctr;
+
+	//Cache line size is a power of two. Gives ones below the bit that is set
+	//to denote the size. Hence a sort of a mask is stored in r3 that
+	//identifies the byte addresses of a cache line.
+	min_data_cache_line_mask = min_data_cache_line_size - 1;
+
+	//Makes the start address cache line size aligned.
+	start = start & ~min_data_cache_line_mask;
+
+	//Cleans data cache lines containing words at addresses in the
+	//interval [start, end) (for values in start and end at this execution
+	//point).
+	do {
+		//DCCMVAC, Clean data (or unified) cache line by MVA to PoC. Can be
+		//executed only by software executing at PL1 or higher. Cleans the
+		//cache line containing the data word at address start.
+		//Executes: MCR p15, 0, start, c7, c10, 1;
+		COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, start);
+
+		//Increments the cache line size aligned address in start with the
+		//value of the minimum cache line size.
+		start += min_data_cache_line_size;
+	} while (start < end);
+
+	//Data Synchronization Barrier acts as a special kind of memory barrier. No
+	//instruction in program order after this instruction executes until this
+	//instruction completes. This instruction completes when:
+	//• All explicit memory accesses before this instruction complete.
+	//• All Cache, Branch predictor and TLB maintenance operations before this
+	//  instruction complete.
+	dsb();
+}

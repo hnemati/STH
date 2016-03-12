@@ -32,6 +32,10 @@
 #define COP_DCACHE_CLEAN_INVALIDATE_MVA "c7, c14, 1"
 #define COP_DCACHE_CLEAN_INVALIDATE_SW "c7, c14, 2"
 
+////////
+#define COP_DCIMVAC "c7, c6, 1"
+////////
+
 #define COP_V2P_PAR				"c7, c4, 0"
 #define COP_V2P_CWPR			"c7, c8, 0"
 #define COP_V2P_CWPW			"c7, c8, 1"

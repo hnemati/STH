@@ -5,7 +5,7 @@
 
 extern virtual_machine *curr_vm;
 
-#if 1
+#if 0
 #define DEBUG_MMU
 #endif
 
@@ -306,7 +306,7 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 			page_offset_idx);
 	l1_desc_entry = *l1_pt_entry_for_desc;
 
-	addr_t *desc_va = LINUX_VA(MMU_L2_SMALL_ADDR(l1_entry));
+	addr_t *desc_va = LINUX_VA(MMU_L1_PT_ADDR(l1_entry));
 
 	if (l1_desc_entry & MMU_L1_TYPE_SECTION) {	/*SECTION page, replace with lvl2 pages */
 
@@ -452,13 +452,18 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		isb();
 
 		/*Flush entry */
-		if (dmmu_l1_pt_map
-		    (virt_transl_for_pmd, MMU_L2_SMALL_ADDR(desc), attrs))
-			printf("\n\tCould not map L1 PT in set PMD\n");
-		if (dmmu_l1_pt_map
-		    (virt_transl_for_pmd + SECTION_SIZE,
-		     MMU_L2_SMALL_ADDR(desc) + 0x400, attrs))
-			printf("\n\tCould not map L1 PT in set PMD\n");
+		err =
+		    dmmu_l1_pt_map(virt_transl_for_pmd,
+				   MMU_L2_SMALL_ADDR(desc), attrs);
+		if (err)
+			printf("Could not map L1 PT in set PMD err:%d\n",
+			       err);
+		err =
+		    dmmu_l1_pt_map(virt_transl_for_pmd + SECTION_SIZE,
+				   MMU_L2_SMALL_ADDR(desc) + 0x400, attrs);
+		if (err)
+			printf("Could not map L1 PT in set PMD err:%d\n",
+			       err);
 
 		/*Flush entry */
 		CacheDataInvalidateBuff((uint32_t) pmd, 4);
@@ -491,12 +496,12 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 	addr_t phys_start = curr_vm->config->firmware->pstart;
 	uint32_t page_offset = curr_vm->guest_info.page_offset;
 	uint32_t guest_size = curr_vm->config->firmware->psize;
-#if 0				/*Linux 2.6 */
-	uint32_t *l2pt_hw_entry_va =
-	    (addr_t *) ((addr_t) l2pt_linux_entry_va - 0x800);
-#else				/*Linux 3.10.1 */
+#if 0				/*Linux 3.10.1 */
 	uint32_t *l2pt_hw_entry_va =
 	    (addr_t *) ((addr_t) l2pt_linux_entry_va + 0x800);
+#else				/*Linux 2.6 */
+	uint32_t *l2pt_hw_entry_va =
+	    (addr_t *) ((addr_t) l2pt_linux_entry_va - 0x800);
 #endif
 	addr_t l2pt_hw_entry_pa =
 	    ((addr_t) l2pt_hw_entry_va - page_offset + phys_start);

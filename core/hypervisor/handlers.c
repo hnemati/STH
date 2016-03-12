@@ -1,8 +1,10 @@
 #include <hw.h>
 #include "hypercalls.h"
+#include <soc_cpsw.h>
 
 extern virtual_machine *curr_vm;
 
+extern BOOL soc_check_cpsw_access(uint32_t, uint32_t);
 #define USE_DMMU
 
 // Disabling aggressive flushing
@@ -218,7 +220,7 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
 				    uint32_t unused)
 {
-#if 1
+#if 0
 	if (addr >= 0xc0000000)
 		printf("Pabort:%x Status:%x, u=%x \n", addr, status, unused);
 #endif
@@ -362,7 +364,7 @@ return_value data_abort_handler(uint32_t addr, uint32_t status,
 
 return_value irq_handler(uint32_t irq, uint32_t r1, uint32_t r2)
 {
-	printf("IRQ handler called \n");
+	//printf("IRQ handler called \n");
 	if (curr_vm->current_mode_state->ctx.psr & 0x80) {	/*Interrupts are off, return */
 		mask_interrupt(irq, 1);	//Mask interrupt and mark pending
 		return RV_OK;

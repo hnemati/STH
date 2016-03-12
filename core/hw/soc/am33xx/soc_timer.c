@@ -97,6 +97,7 @@ static gtimer *timer;
 
 gtimer *timer_get(int n)
 {
+
 	if (n < 0 || n >= GTIMER_COUNT)
 		return 0;
 	return (gtimer *) IO_VA_OMAP2_L4_ADDRESS(TIMER_BASES[n]);

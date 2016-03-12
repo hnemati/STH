@@ -48,7 +48,7 @@ typedef struct virtual_machine_ {
 	uint32_t current_guest_mode;
 	uint32_t interrupted_mode;
 	guest_info guest_info;
-	uint32_t *exception_vector;
+	uint32_t exception_vector[10];
 	hyper_mode_state mode_states[HC_NGUESTMODES];
 	hyper_mode_state *current_mode_state;
 	struct hc_config_ *config;

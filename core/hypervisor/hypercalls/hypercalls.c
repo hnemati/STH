@@ -57,10 +57,19 @@ void hypercall_guest_init(boot_info * info)
 	curr_vm->guest_info.vmalloc_end = info->guest.vmalloc_end;
 	curr_vm->guest_info.guest_size = info->guest.guest_size;
 
-	printf("vmalloc_end %x %x %x %x\n", info->guest.vmalloc_end,
-	       info->guest.guest_size, info->guest.phys_offset,
-	       info->guest.page_offset);
-	curr_vm->exception_vector = (uint32_t *) info->guest.page_offset;
+	/*Check if the exception vector address are within allowed values */
+	int i, address;
+	for (i = 0; i < 10; i++) {
+		address = (uint32_t) info->guest.vector_table[i];
+		if (((address < 0xC0000000) && address != 0)
+		    || (address >
+			(uint32_t) (HAL_VIRT_START - sizeof(uint32_t))))
+			hyper_panic
+			    ("Pointer given does not reside in kernel space\n",
+			     1);
+
+		curr_vm->exception_vector[i] = info->guest.vector_table[i];
+	}
 
 #ifdef LINUX
 	//clear_linux_mappings();

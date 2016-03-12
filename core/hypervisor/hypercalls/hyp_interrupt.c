@@ -93,11 +93,6 @@ void hypercall_end_interrupt(uint32_t irq_regs)
 	if (curr_vm->interrupted_mode >= HC_NGUESTMODES) {
 		hyper_panic("Invalid interrupted mode value.", 2);
 	}
-	//if (curr_vm->interrupted_mode == curr_vm->current_guest_mode) {
-	//  hyper_panic("Interrupt mode interrupted itself??", 3);
-	// printf("An interuppt inside the interrupt happened!\n");
-	//}
-
 #if LINUX
 	if (irq_regs < 0xC0000000
 	    || (irq_regs >= 0xf0000000 && irq_regs <= 0xf0100000)) {

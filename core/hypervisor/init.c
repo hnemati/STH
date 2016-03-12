@@ -5,7 +5,7 @@
 #include "hw_core_mem.h"
 #include "dmmu.h"
 
-#define DEBUG_PG_CONTENT
+//#define DEBUG_PG_CONTENT
 #define DEBUG_L1_PG_TYPE
 /*
  * Function prototypes
@@ -172,7 +172,8 @@ void setup_handlers()
 	printf("undef_handler is READY \n");
 
 	/* Start the timer and direct interrupts to hypervisor irq handler */
-	timer_tick_start((cpu_callback) irq_handler);
+	gp_timer_tick_start((cpu_callback) irq_handler);
+
 }
 
 void guests_init()
@@ -389,8 +390,6 @@ void start_()
 	memory_init();
 
 	/* Initialize hardware */
-	uart_init();
-
 	board_init();
 	soc_init();
 	/* Setting up exception handlers and starting timer */

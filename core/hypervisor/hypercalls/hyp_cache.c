@@ -4,6 +4,22 @@
 /*Cache and TLB operations*/
 
 /*D Cache operations*/
+////////
+void hypercall_dcache_clean_region(addr_t start, addr_t end)
+{
+	clean_dcache_region(start, end);
+}
+
+////////
+
+////////
+void hypercall_dcache_invalidate_region(addr_t start, addr_t end)
+{
+	inv_dcache_region(start, end);
+}
+
+////////
+
 void hypercall_dcache_flush_area(addr_t va, uint32_t size)
 {
 	mem_cache_dcache_area(va, size, FLUSH);
@@ -73,6 +89,12 @@ void hypercall_cache_op(enum hyp_cache_op op, addr_t va, uint32_t size)
 		return;
 	case CLEAN_D_CACHE_AREA:
 		hypercall_dcache_clean_area(va, size);
+		return;
+	case INV_D_CACHE_REGION:
+		hypercall_dcache_invalidate_region(va, size);
+		return;
+	case CLEAN_D_CACHE_REGION:
+		hypercall_dcache_clean_region(va, size);
 		return;
 	case INVAL_D_CACHE_MVA:
 		hypercall_dcache_invalidate_mva(va);

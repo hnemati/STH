@@ -37,5 +37,4 @@ void hypercall_set_tls(uint32_t thread_id)
 	COP_WRITE(COP_SYSTEM, COP_SOFTWARE_THREAD_ID_USER_R, thread_id);
 	COP_WRITE(COP_SYSTEM, COP_SOFTWARE_THREAD_ID_USER_RW, 0);
 #endif
-
 }

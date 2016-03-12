@@ -3,15 +3,10 @@
 
 void irq_handler();
 /* context */
-void uart_init()
+void soc_init()
 {
 	soc_uart_init();
 	printf("Uart initialized\n");
-	return;
-}
-
-void soc_init()
-{
 	soc_ctrl_init();
 	printf("Soc CTRL initialized\n");
 	soc_interrupt_init();

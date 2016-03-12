@@ -179,6 +179,7 @@ void fillrand(unsigned char *buf, const int len)
 void generateAESKey(char *AES)
 {
 //XXX   srand(0);
+	srand_mwc();
 	int i;
 	int tmp = 0;
 	for (i = 0; i < 32; i++) {

@@ -217,6 +217,7 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 #endif
 }
 
+#if 1
 return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
 				    uint32_t unused)
 {
@@ -262,6 +263,52 @@ return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
 	//printf("Kernel PC:%x LR:%x \n",curr_vm->mode_states[HC_GM_KERNEL].ctx.pc, curr_vm->mode_states[HC_GM_KERNEL].ctx.lr);
 	return RV_OK;
 }
+#else
+return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
+				    uint32_t unused)
+{
+#if 1
+	if (addr >= 0xc0000000)
+		printf("Pabort:%x Status:%x, u=%x \n", addr, status, unused);
+#endif
+	uint32_t interrupted_mode = curr_vm->current_guest_mode;
+
+	/*Need to be in virtual kernel mode to access data abort handler */
+	change_guest_mode(HC_GM_KERNEL);
+#ifdef LINUX
+	/*Set uregs, Linux kernel ususally sets these up in exception vector
+	 * which we have to handle now*/
+
+	uint32_t *sp = (uint32_t *) (curr_vm->mode_states[HC_GM_KERNEL].ctx.sp - 72);	/*FRAME_SIZE (18 registers to be saved) */
+	uint32_t *context = curr_vm->mode_states[interrupted_mode].ctx.reg;
+	uint32_t i;
+
+	for (i = 0; i < 17; i++) {
+		*sp++ = *context++;
+	}
+	*sp = 0xFFFFFFFF;	//ORIG_R0
+	curr_vm->mode_states[HC_GM_KERNEL].ctx.sp -= (72);	/*Adjust stack pointer */
+
+	/*Prepare args for prefetchabort handler */
+	curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[0] = addr;
+	curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[1] = status;
+	/*Linux saves the user registers in the stack */
+	curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[2] =
+	    (uint32_t) curr_vm->mode_states[HC_GM_KERNEL].ctx.sp;
+
+	curr_vm->mode_states[HC_GM_KERNEL].ctx.psr |= IRQ_MASK;	/*Disable IRQ ALWAYS */
+	/*Prepare pc for Linux handler */
+	uint32_t *pabt_handler =
+	    (uint32_t *) (curr_vm->exception_vector[V_PREFETCH_ABORT]);
+	if (interrupted_mode == HC_GM_TASK)
+		pabt_handler++;	/*DABT_USR located +4 in Linux exception vector */
+
+	curr_vm->current_mode_state->ctx.pc = *pabt_handler;
+#endif
+	return RV_OK;
+}
+
+#endif
 
 return_value data_abort_handler(uint32_t addr, uint32_t status,
 				uint32_t unused)

@@ -103,12 +103,14 @@ void hypercall_end_interrupt(uint32_t irq_regs)
 	/*Check whether the interrupted context is in kernel or user mode */
 	if (sp_pop[15] < 0xc0000000 && !(sp_pop[16] & 3))
 		curr_vm->interrupted_mode = HC_GM_TASK;
-	else if (sp_pop[15] >= 0xc0000000 && (sp_pop[16] & 3))
-		curr_vm->interrupted_mode = HC_GM_KERNEL;
 	else {
-		hyper_panic
-		    ("Trying to restore context with wrong privileged mode",
-		     0);
+		if (sp_pop[15] >= 0xc0000000 && (sp_pop[16] & 3))
+			curr_vm->interrupted_mode = HC_GM_KERNEL;
+		else {
+			hyper_panic
+			    ("Trying to restore context with wrong privileged mode",
+			     0);
+		}
 	}
 
 	uint32_t *context =

@@ -80,22 +80,24 @@ void hypercall_guest_init(boot_info * info)
 
 void hypercall_restore_regs(uint32_t * regs)
 {
-	uint32_t size = sizeof(uint32_t) * 17;	//17 registers to be restored from pointer
-	if (((uint32_t) regs < 0xC0000000)
-	    || ((uint32_t) regs > (uint32_t) (HAL_VIRT_START - size)))
-		hyper_panic("Pointer does not reside in kernel space\n", 1);
+	if ((uint32_t) regs <= 0xC0000000)
+		hyper_panic("Pointer given reside in user space\n", 1);
+
+	if ((uint32_t) regs > HAL_VIRT_START
+	    && (uint32_t) regs < HAL_VIRT_START + MAX_TRUSTED_SIZE)
+		hyper_panic
+		    ("Pointer given reside in hypervisor or trusted space",
+		     1);
 
 	uint32_t *context;
-	uint32_t i = 16;
+	uint32_t i = 17;
 	context = &curr_vm->current_mode_state->ctx.reg[0];
 
 	while (i > 0) {
 		*context++ = *regs++;
 		i--;
 	}
-	/*Last register to set is the PSR
-	 *Mask it to only allow cpu usr mode */
-	*context = 0xFFFFFFF0 & *regs;
+
 }
 
 /* Linux context switches are very fast and to maintain its speed,
@@ -109,17 +111,19 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 		offset = 8;
 
 	sp = (uint32_t *) curr_vm->mode_states[HC_GM_KERNEL].ctx.sp;
-
-	uint32_t size = sizeof(uint32_t) * 17;	//17 registers to be restored from pointer
-	if (((uint32_t) sp < 0xC0000000)
-	    || ((uint32_t) sp > (uint32_t) (HAL_VIRT_START - size)))
-		hyper_panic("Pointer does not reside in kernel space\n", 1);
-
 	/*when in syscall mode, it means its returning from a systemcall which means we have 2 extra registers
 	 *for systemcall arguments and we have to add a offset */
 	mode = *((uint32_t *) (sp + 16 + (offset / 4)));	//PSR register
 	stack_pc = *((uint32_t *) (sp + 15));	//pc register
 
+	if ((mode & 0x1F) == 0x10)
+		kernel_space = 0;
+	else if ((mode & 0x1F) == 0x13)
+		kernel_space = 1;
+	else
+		hyper_panic("Unknown mode, halting system", 1);
+
+#if 0
 	/*Kuser helper is from user space */
 	if (stack_pc < 0xC0000000
 	    || (stack_pc < 0xFFFF1000 && stack_pc >= 0xFFFF0FA0))
@@ -127,6 +131,7 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 	else
 		kernel_space = 1;
 
+#endif
 	/*Virtual kernel mode */
 	if (kernel_space) {
 
@@ -145,7 +150,7 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 
 		/*Code originaly run in SVC mode, however only make sure it
 		 * can run in virtual kernel mode*/
-		curr_vm->mode_states[HC_GM_KERNEL].ctx.psr = 0xFFFFFFF0 & mode;	//force user mode //TODO CHECK NOT VALID AFTER FIRST TIME?CHECK CURRENT MODE INSTEAD
+		curr_vm->mode_states[HC_GM_KERNEL].ctx.psr = mode;
 		curr_vm->mode_states[HC_GM_KERNEL].ctx.pc = stack_pc;
 
 		/*Adjust kernel stack pointer */
@@ -177,7 +182,7 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 			i--;
 		}
 
-		curr_vm->mode_states[HC_GM_TASK].ctx.psr = 0xFFFFFFF0 & mode;	// Make sure of user mode
+		curr_vm->mode_states[HC_GM_TASK].ctx.psr = mode;
 
 		/*Adjust kernel stack pointer */
 		curr_vm->mode_states[HC_GM_KERNEL].ctx.sp += (18 * 4 + offset);	// Frame size + offset (2 swi args)
@@ -188,7 +193,7 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 
 //      ERROR HANDLING CODE -----------------------------------
 
-void terminate(int number)
+void terminate(uint32_t number)
 {
 	printf("\n Hypervisor terminated with error code: %i\n", number);
 	while (1) ;		//get stuck here

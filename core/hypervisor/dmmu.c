@@ -4,7 +4,7 @@
 #include "guest_blob.h"
 
 // DEBUG FLAGS
-#define DEBUG_DMMU_MMU_LEVEL 1
+#define DEBUG_DMMU_MMU_LEVEL 2
 
 extern virtual_machine *curr_vm;
 extern uint32_t *flpt_va;
@@ -142,7 +142,7 @@ uint32_t l1PT_checker(uint32_t l1_desc)
 	} else {
 		return SUCCESS_MMU;
 	}
-#if DEBUG_DMMU_MMU_LEVEL > 2
+#if DEBUG_DMMU_MMU_LEVEL > 1
 	printf("l1PT_checker failed: %x %d\n", l1_desc, err_flag);
 #endif
 	return err_flag;
@@ -207,7 +207,7 @@ uint32_t l1Sec_checker(uint32_t l1_desc, addr_t l1_base_pa_add)
 		}
 	}
 	if (err_flag != SUCCESS_MMU) {
-#if DEBUG_DMMU_MMU_LEVEL > 2
+#if DEBUG_DMMU_MMU_LEVEL >1
 
 		printf("l1Sec_checker failed: %x %x %d\n", l1_desc,
 		       l1_base_pa_add, err_flag);
@@ -290,7 +290,6 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 		return ERR_MMU_L1_BASE_IS_NOT_16KB_ALIGNED;
 
 	ph_block = PA_TO_PH_BLOCK(l1_base_pa_add);
-
 	if (get_bft_entry_by_block_idx(ph_block)->type == PAGE_INFO_TYPE_L1PT
 	    && get_bft_entry_by_block_idx(ph_block + 1)->type ==
 	    PAGE_INFO_TYPE_L1PT
@@ -302,7 +301,6 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 	}
 
 	/* try to allocate a PT in physical address */
-
 	if (get_bft_entry_by_block_idx(ph_block)->type != PAGE_INFO_TYPE_DATA
 	    || get_bft_entry_by_block_idx(ph_block + 1)->type !=
 	    PAGE_INFO_TYPE_DATA
@@ -339,7 +337,7 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 		l1_desc = *((uint32_t *) l1_desc_va_add);
 		l1_type = l1_desc & DESC_TYPE_MASK;
 
-#if DEBUG_DMMU_MMU_LEVEL > 3
+#if DEBUG_DMMU_MMU_LEVEL > 2
 		if (l1_desc != 0x0)
 			printf("pg %x %x \n", l1_idx, l1_desc);
 #endif

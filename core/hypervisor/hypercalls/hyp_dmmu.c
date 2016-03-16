@@ -4,11 +4,11 @@
 
 extern virtual_machine *curr_vm;
 
-#if 1
+#if 0
 #define DEBUG_MMU
 #endif
 
-void dump_L1pt()
+void dump_L1pt(virtual_machine * curr_vm)
 {
 	uint32_t *guest_pt_va;
 	addr_t phys_start, guest_pt_pa;
@@ -22,7 +22,7 @@ void dump_L1pt()
 	}
 }
 
-void dump_L2pt(addr_t l2_base)
+void dump_L2pt(addr_t l2_base, virtual_machine * curr_vm)
 {
 	uint32_t l2_idx, l2_desc_pa_add, l2_desc_va_add, l2_desc;
 	for (l2_idx = 0; l2_idx < 512; l2_idx++) {
@@ -45,8 +45,7 @@ addr_t linux_pt_get_empty_l2();
 void hypercall_dyn_switch_mm(addr_t table_base, uint32_t context_id)
 {
 #ifdef DEBUG_MMU
-	printf("\n\t\t\tHypercall switch PGD\n\t\t table_base:%x ",
-	       table_base);
+	printf("Hypercall switch PGD\t table_base:%x ", table_base);
 #endif
 
 	/*Switch the TTB and set context ID */
@@ -497,8 +496,8 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 			printf("Could not map L1 PT in set PMD err:%d\n",
 			       err);
 
-		dump_L1pt();
-		dump_L2pt(0x88008000);
+		//dump_L1pt(curr_vm);
+		//dump_L2pt(0x88008000,curr_vm);
 		/*Flush entry */
 		CacheDataInvalidateBuff((uint32_t) pmd, 4);
 		CacheDataInvalidateBuff((uint32_t) & l2pt_va[l2_idx], 4);
@@ -511,11 +510,7 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 	}
 	printf("Exiting from %s \n", __func__);
 	/*Flush entry */
-#ifdef AGGRESSIVE_FLUSHING_HANDLERS
-	COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA, (uint32_t) pmd);
-	dsb();
-#endif
-	dsb();
+	clean_and_invalidate_cache();
 }
 
 /*va is the virtual address of the page table entry for linux pages

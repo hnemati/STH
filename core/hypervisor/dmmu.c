@@ -4,7 +4,7 @@
 #include "guest_blob.h"
 
 // DEBUG FLAGS
-#define DEBUG_DMMU_MMU_LEVEL 2
+#define DEBUG_DMMU_MMU_LEVEL 1
 
 extern virtual_machine *curr_vm;
 extern uint32_t *flpt_va;

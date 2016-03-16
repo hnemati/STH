@@ -280,10 +280,17 @@ void linux_init_dmmu()
 	uint32_t page_pa = guest_pstart;
 
 	for (i = 0; i < 256; i++, page_pa += 0x1000) {
+#if 0				//Linux 2.6
 		if (i >= 1 && i <= 7) {
 			uint32_t ro_attrs =
 			    0xE | (MMU_AP_USER_RO << MMU_L2_SMALL_AP_SHIFT);
 			dmmu_l2_map_entry(table2_pa, i, page_pa, ro_attrs);
+#else				//Linux 3.10
+		if (i >= 3 && i <= 7) {
+			uint32_t ro_attrs =
+			    0xE | (MMU_AP_USER_RO << MMU_L2_SMALL_AP_SHIFT);
+			dmmu_l2_map_entry(table2_pa, i, page_pa, ro_attrs);
+#endif
 		} else
 			dmmu_l2_map_entry(table2_pa, i, page_pa, small_attrs);
 	}

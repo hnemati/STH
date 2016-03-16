@@ -120,8 +120,11 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 		kernel_space = 0;
 	else if ((mode & 0x1F) == 0x13)
 		kernel_space = 1;
-	else
+	else {
+		printf("In %s with mode is set to %x \n", __func__,
+		       (mode & 0x1F));
 		hyper_panic("Unknown mode, halting system", 1);
+	}
 
 #if 0
 	/*Kuser helper is from user space */
@@ -130,7 +133,6 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 		kernel_space = 0;
 	else
 		kernel_space = 1;
-
 #endif
 	/*Virtual kernel mode */
 	if (kernel_space) {
@@ -156,7 +158,6 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 		/*Adjust kernel stack pointer */
 		curr_vm->mode_states[HC_GM_KERNEL].ctx.sp += (18 * 4);	// Frame size
 		change_guest_mode(HC_GM_KERNEL);
-
 	}
 	/*Virtual user mode */
 	else if (!(kernel_space)) {
@@ -187,8 +188,7 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 		/*Adjust kernel stack pointer */
 		curr_vm->mode_states[HC_GM_KERNEL].ctx.sp += (18 * 4 + offset);	// Frame size + offset (2 swi args)
 		change_guest_mode(HC_GM_TASK);
-	} else
-		hyper_panic("Unknown mode, halting system", 1);
+	}
 }
 
 //      ERROR HANDLING CODE -----------------------------------

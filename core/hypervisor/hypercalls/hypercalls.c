@@ -100,6 +100,20 @@ void hypercall_restore_regs(uint32_t * regs)
 
 }
 
+void dump_L1pt(virtual_machine * curr_vm)
+{
+	uint32_t *guest_pt_va;
+	addr_t phys_start, guest_pt_pa;
+	phys_start = curr_vm->config->firmware->pstart;
+	guest_pt_pa = phys_start + curr_vm->config->pa_initial_l1_offset;
+	guest_pt_va = mmu_guest_pa_to_va(guest_pt_pa, curr_vm->config);
+	uint32_t index;
+	for (index = 0; index < 4096; index++) {
+		if (*(guest_pt_va + index) != 0x0)
+			printf("add %x %x \n", index, *(guest_pt_va + index));
+	}
+}
+
 /* Linux context switches are very fast and to maintain its speed,
  * this function is adapted to the context switching system of Linux.
  * Not portable to other guest OS */
@@ -115,14 +129,16 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 	 *for systemcall arguments and we have to add a offset */
 	mode = *((uint32_t *) (sp + 16 + (offset / 4)));	//PSR register
 	stack_pc = *((uint32_t *) (sp + 15));	//pc register
-
+	printf("In %s with mode is set to %x stack:%x\n", __func__,
+	       (mode & 0x1F), sp);
 	if ((mode & 0x1F) == 0x10)
 		kernel_space = 0;
 	else if ((mode & 0x1F) == 0x13)
 		kernel_space = 1;
 	else {
-		printf("In %s with mode is set to %x \n", __func__,
-		       (mode & 0x1F));
+		printf("In %s with mode is set to %x stack:%x\n", __func__,
+		       (mode & 0x1F), sp);
+		dump_L1pt(curr_vm);
 		hyper_panic("Unknown mode, halting system", 1);
 	}
 

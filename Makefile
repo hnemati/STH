@@ -4,7 +4,7 @@
 #SUBDIRS = utils library simulation drivers guests test core
 SUBDIRS = utils library drivers guests test core simulation
 #SUBDIRS = library simulation guests core
-
+# cat ../sth-linux-jonas/arch/arm/boot/zImage ../sth-linux-jonas/arch/arm/boot/dts/am335x-bone.dtb > guests/linux/build/zImage.bin;
 all:
 	cat ../sth-linux-jonas/arch/arm/boot/zImage ../sth-linux-jonas/arch/arm/boot/dts/am335x-bone.dtb > guests/linux/build/zImage.bin;set -e; for d in $(SUBDIRS); do $(MAKE) -C $$d ; done
 

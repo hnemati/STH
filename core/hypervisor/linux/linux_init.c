@@ -122,9 +122,10 @@ void init_linux_page()
 				  linux_phys_ram + i * (1 << 20),
 				  MLT_USER_RAM);
 	}
-
+#if 1				//Linux 3.10
 	/*New ATAG (3.10) at end of image */
 	pt_create_section(flpt_va, 0x9FE00000, 0x9FE00000, MLT_USER_RAM);
+#endif
 
 	uint32_t phys = 0;
 	p = (uint32_t *) ((uint32_t) slpt_va + ((l2_index_p - 1) * 0x400));	/*256 pages * 4 bytes for each lvl 2 page descriptor */
@@ -198,14 +199,14 @@ void linux_init_dmmu()
 	/*Can't map from offset = 0 because start addresses contains page tables */
 	/*Maps PA-PA for boot */
 
-	for (offset = SECTION_SIZE;	//0;
+	for (offset = SECTION_SIZE;
 	     offset + SECTION_SIZE <= guest_psize; offset += SECTION_SIZE) {
 
 		dmmu_map_L1_section(guest_pstart + offset,
 				    guest_pstart + offset, sect_attrs);
 	}
 	/*Maps VA-PA for kernel */
-	for (offset = SECTION_SIZE;	//0;
+	for (offset = SECTION_SIZE;
 	     offset + SECTION_SIZE <= (guest_psize - SECTION_SIZE * 16);
 	     offset += SECTION_SIZE) {
 		dmmu_map_L1_section(guest_vstart + offset,

@@ -8,24 +8,10 @@ extern virtual_machine *curr_vm;
 #define DEBUG_MMU
 #endif
 
-void dump_L1pt(virtual_machine * curr_vm)
-{
-	uint32_t *guest_pt_va;
-	addr_t phys_start, guest_pt_pa;
-	phys_start = curr_vm->config->firmware->pstart;
-	guest_pt_pa = phys_start + curr_vm->config->pa_initial_l1_offset;
-	guest_pt_va = mmu_guest_pa_to_va(guest_pt_pa, curr_vm->config);
-	uint32_t index;
-	for (index = 0; index < 4096; index++) {
-		if (*(guest_pt_va + index) != 0x0)
-			printf("add %x %x \n", index, *(guest_pt_va + index));
-	}
-}
-
 void dump_L2pt(addr_t l2_base, virtual_machine * curr_vm)
 {
 	uint32_t l2_idx, l2_desc_pa_add, l2_desc_va_add, l2_desc;
-	for (l2_idx = 0; l2_idx < 512; l2_idx++) {
+	for (l2_idx = 512; l2_idx < 1024; l2_idx++) {
 		l2_desc_pa_add = L2_DESC_PA(l2_base, l2_idx);
 		l2_desc_va_add =
 		    mmu_guest_pa_to_va(l2_desc_pa_add, curr_vm->config);
@@ -495,9 +481,6 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		if (err)
 			printf("Could not map L1 PT in set PMD err:%d\n",
 			       err);
-
-		//dump_L1pt(curr_vm);
-		//dump_L2pt(0x88008000,curr_vm);
 		/*Flush entry */
 		CacheDataInvalidateBuff((uint32_t) pmd, 4);
 		CacheDataInvalidateBuff((uint32_t) & l2pt_va[l2_idx], 4);
@@ -572,25 +555,22 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 			if (err == ERR_MMU_PT_NOT_UNMAPPED) {
 				/*So DMMU API does not allow changing attributes or remapping an entry if its not empty
 				 *this is a workaround */
-				uint32_t res =
-				    dmmu_l2_unmap_entry(l2pt_hw_entry_pa &
-							L2_BASE_MASK,
-							entry_idx);
-				printf("dmmu_l2_unmap_entry res:%x", res);
-				res =
-				    dmmu_l2_map_entry(l2pt_hw_entry_pa &
-						      L2_BASE_MASK, entry_idx,
-						      MMU_L1_PT_ADDR
-						      (phys_pte), attrs);
-				printf("dmmu_l2_map_entry res:%x", res);
+				dmmu_l2_unmap_entry(l2pt_hw_entry_pa &
+						    L2_BASE_MASK, entry_idx);
+				dmmu_l2_map_entry(l2pt_hw_entry_pa &
+						  L2_BASE_MASK, entry_idx,
+						  MMU_L1_PT_ADDR(phys_pte),
+						  attrs);
 			} else {
 				printf
 				    ("\n\tCould not map l2 entry in set pte hypercall\n");
 			}
 		}
 		/*Cannot map linux entry, ap = 0 generates error */
-		//dmmu_l2_map_entry(l2pt_hw_entry_pa & L2_BASE_MASK, entry_idx + (256*2), MMU_L1_PT_ADDR(phys_pte),linux_pte & 0xFFF);
-		printf("dmmu_l2_map_entry err:%x \n", err);
+		printf("dmmu_l2_map_entry err:%x %x %x %x\n", err, entry_idx,
+		       MMU_L1_PT_ADDR(phys_pte), attrs);
+		//dump_L1pt(curr_vm);
+		//dump_L2pt(0x8603D000,curr_vm);
 	} else {
 		/*Unmap */
 		if (dmmu_l2_unmap_entry
@@ -603,7 +583,5 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 
 	COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA,
 		  (uint32_t) l2pt_hw_entry_va);
-	//CacheDataInvalidateBuff((uint32_t)l2pt_hw_entry_va,4);
-	dsb();
-
+	clean_and_invalidate_cache();
 }

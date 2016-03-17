@@ -23,9 +23,12 @@ void clean_and_invalidate_cache()
 void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 		 uint32_t hypercall_number)
 {
-/* if ((hypercall_number != HYPERCALL_INTERRUPT_SET) && (hypercall_number != HYPERCALL_END_INTERRUPT) && (hypercall_number != HYPERCALL_SET_TLS_ID) ){
-    	printf("SWI ENTER hypercall_number = %d %x %x %x\n", hypercall_number, param0, param1, param2);
-   }*/
+	if ((hypercall_number == HYPERCALL_RESTORE_REGS)
+	    || (hypercall_number == HYPERCALL_RESTORE_LINUX_REGS)
+	    && (hypercall_number != HYPERCALL_SET_TLS_ID)) {
+		printf("SWI ENTER hypercall_number = %d %x %x %x\n",
+		       hypercall_number, param0, param1, param2);
+	}
 	/*TODO Added check that controls if it comes from user space, makes it pretty inefficient, remake later */
 	/*Testing RPC from user space, remove later */
 	if (curr_vm->current_guest_mode == HC_GM_TASK) {

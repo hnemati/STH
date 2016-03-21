@@ -287,7 +287,7 @@ void linux_init_dmmu()
 			    0xE | (MMU_AP_USER_RO << MMU_L2_SMALL_AP_SHIFT);
 			dmmu_l2_map_entry(table2_pa, i, page_pa, ro_attrs);
 #else				//Linux 3.10
-		if (i >= 3 && i <= 7) {
+		if (i >= 4 && i <= 7) {
 			uint32_t ro_attrs =
 			    0xE | (MMU_AP_USER_RO << MMU_L2_SMALL_AP_SHIFT);
 			dmmu_l2_map_entry(table2_pa, i, page_pa, ro_attrs);

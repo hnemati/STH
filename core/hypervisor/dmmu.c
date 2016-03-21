@@ -266,6 +266,8 @@ void create_L1_refs_update(addr_t l1_base_pa_add)
 #define DEBUG_PG_CONTENT 1
 int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 {
+	printf("I am called %s l1_base_pa_add:%x \n", __func__,
+	       l1_base_pa_add);
 	uint32_t l1_idx, pt_idx;
 	uint32_t l1_desc;
 	uint32_t l1_desc_va_add;
@@ -313,9 +315,11 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 	if (get_bft_entry_by_block_idx(ph_block)->refcnt != 0 ||
 	    get_bft_entry_by_block_idx(ph_block + 1)->refcnt != 0 ||
 	    get_bft_entry_by_block_idx(ph_block + 2)->refcnt != 0 ||
-	    get_bft_entry_by_block_idx(ph_block + 3)->refcnt != 0)
+	    get_bft_entry_by_block_idx(ph_block + 3)->refcnt != 0) {
+		printf("Number of ref %d \n",
+		       get_bft_entry_by_block_idx(ph_block + 1)->refcnt);
 		return ERR_MMU_REFERENCED;
-
+	}
 	// copies  the reserved virtual addresses from the master page table
 	// each virtual page non-unmapped in the master page table is considered reserved
 	for (l1_idx = 0; l1_idx < 4096; l1_idx++) {
@@ -457,6 +461,8 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 
 uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
 {
+	printf("I am called %s va:%x sec_base:%x attrs:%x \n", __func__, va,
+	       sec_base_add, attrs);
 	uint32_t l1_base_add;
 	uint32_t l1_idx;
 	uint32_t l1_desc;
@@ -508,8 +514,7 @@ uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
 	ap = GET_L1_AP(l1_sec_desc);
 
 	if (ap == 3) {
-		for (sec_idx = 0; sec_idx < 256; sec_idx++)	//&& (l1_sec_desc->addr != 0x879)
-		{
+		for (sec_idx = 0; (sec_idx < 256); sec_idx++) {
 			uint32_t ph_block =
 			    PA_TO_PH_BLOCK(START_PA_OF_SECTION(l1_sec_desc)) |
 			    (sec_idx);
@@ -550,6 +555,7 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	l1_desc = *(flpt_va + l1_idx);
 	if (L1_TYPE(l1_desc) != UNMAPPED_ENTRY) {
 		return ERR_MMU_RESERVED_VA;
+		while (1) ;
 	}
 
 	if (!guest_pa_range_checker(l2_base_pa_add, PAGE_SIZE))
@@ -558,8 +564,10 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	uint32_t ph_block = PA_TO_PH_BLOCK(l2_base_pa_add);
 	dmmu_entry_t *bft_entry = get_bft_entry_by_block_idx(ph_block);
 
-	if (bft_entry->type != PAGE_INFO_TYPE_L2PT)
+	if (bft_entry->type != PAGE_INFO_TYPE_L2PT) {
 		return ERR_MMU_IS_NOT_L2_PT;
+		while (1) ;
+	}
 
 	COP_READ(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0,
 		 (uint32_t) l1_base_add);
@@ -569,21 +577,29 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 	    mmu_guest_pa_to_va(l1_desc_pa_add, (curr_vm->config));
 	l1_desc = *((uint32_t *) l1_desc_va_add);
 
-	if (L1_DESC_PXN(attrs))
+	if (L1_DESC_PXN(attrs)) {
 		return ERR_MMU_XN_BIT_IS_ON;
+		while (1) ;
+	}
 	//checks if the L1 entry is unmapped or not
-	if ((l1_desc & DESC_TYPE_MASK) != 0)
+	if ((l1_desc & DESC_TYPE_MASK) != 0) {
 		return ERR_MMU_PT_NOT_UNMAPPED;
+		while (1) ;
+	}
 
-	if (bft_entry->refcnt == MAX_30BIT)
+	if (bft_entry->refcnt == MAX_30BIT) {
 		return ERR_MMU_REF_OVERFLOW;
+		while (1) ;
+	}
 	bft_entry->refcnt += 1;
 	// Updating memory with the new descriptor
 	l1_desc = CREATE_L1_PT_DESC(l2_base_pa_add, attrs);
 
 	l1_pt_t *pt = (l1_pt_t *) (&l1_desc);
-	if ((pt->addr & 0x2) == 2)
+	if ((pt->addr & 0x2) == 2) {
 		return ERR_MMU_L2_BASE_OUT_OF_RANGE;
+		while (1) ;
+	}
 
 	*((uint32_t *) l1_desc_va_add) = l1_desc;
 
@@ -647,6 +663,10 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 				dmmu_entry_t *bft_entry =
 				    get_bft_entry_by_block_idx(ph_block);
 				bft_entry->refcnt -= 1;
+				if (ph_block == 0x86508)
+					printf
+					    ("[;(] in %s for va:%x ref is %x  \n",
+					     __func__, va, bft_entry->refcnt);
 			}
 		*((uint32_t *) l1_desc_va_add) = UNMAP_L1_ENTRY(l1_desc);
 	}
@@ -759,7 +779,7 @@ void create_L2_pgtype_update(uint32_t l2_base_pa_add)
 
 uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 {
-	printf("I am called %s  l2_base:%x \n", __func__, l2_base_pa_add);
+	//printf("I am called %s  l2_base:%x \n", __func__,  l2_base_pa_add);
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -886,6 +906,11 @@ int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 		      addr_t page_pa_add, uint32_t attrs)
 {
+	if ((page_pa_add == 0x86508000) || (page_pa_add == 0x86509000)
+	    || (page_pa_add == 0x8650A000) || (page_pa_add == 0x8650B000)) {
+		printf("I am called %s mapping pg:%x to:%x \n", __func__,
+		       page_pa_add, l2_base_pa_add);
+	}
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -927,7 +952,6 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 	ap = GET_L2_AP(pg_desc);
 	if (ap == 3)
 		bft_entry_pg->refcnt += 1;
-
 	//Updating page table in memory
 	*((uint32_t *) l2_desc_va_add) = new_l2_desc;
 
@@ -985,7 +1009,7 @@ int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 //#define SW_DEBUG
 int dmmu_switch_mm(addr_t l1_base_pa_add)
 {
-	printf("I am called %s  l1_base:%x \n", __func__, l1_base_pa_add);
+	//printf("I am called %s  l1_base:%x \n", __func__,  l1_base_pa_add);
 	int i;
 	uint32_t ph_block;
 

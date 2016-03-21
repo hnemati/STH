@@ -23,12 +23,9 @@ void clean_and_invalidate_cache()
 void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 		 uint32_t hypercall_number)
 {
-	if ((hypercall_number == HYPERCALL_RESTORE_REGS)
-	    || (hypercall_number == HYPERCALL_RESTORE_LINUX_REGS)
-	    && (hypercall_number != HYPERCALL_SET_TLS_ID)) {
-		printf("SWI ENTER hypercall_number = %d %x %x %x\n",
-		       hypercall_number, param0, param1, param2);
-	}
+//  if ((hypercall_number == HYPERCALL_RESTORE_REGS) || (hypercall_number == HYPERCALL_RESTORE_LINUX_REGS) && (hypercall_number != HYPERCALL_SET_TLS_ID) ){
+//      printf("SWI ENTER hypercall_number = %d %x %x %x\n", hypercall_number, param0, param1, param2);
+//  }
 	/*TODO Added check that controls if it comes from user space, makes it pretty inefficient, remake later */
 	/*Testing RPC from user space, remove later */
 	if (curr_vm->current_guest_mode == HC_GM_TASK) {
@@ -209,53 +206,6 @@ void swi_handler(uint32_t param0, uint32_t param1, uint32_t param2,
 #endif
 }
 
-#if 1
-return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
-				    uint32_t unused)
-{
-#if 0
-	if (addr >= 0xc0000000)
-		printf("Pabort:%x Status:%x, u=%x \n", addr, status, unused);
-#endif
-	uint32_t interrupted_mode = curr_vm->current_guest_mode;
-
-	/*Need to be in virtual kernel mode to access data abort handler */
-	change_guest_mode(HC_GM_KERNEL);
-
-	/*Set uregs, Linux kernel ususally sets these up in exception vector
-	 * which we have to handle now*/
-
-	curr_vm->mode_states[HC_GM_KERNEL].ctx.sp -= (72);	//FRAME_SIZE (18 registers to be saved)
-
-	uint32_t *sp = (uint32_t *) curr_vm->mode_states[HC_GM_KERNEL].ctx.sp;
-	uint32_t *context = curr_vm->mode_states[interrupted_mode].ctx.reg;
-	uint32_t i;
-
-	for (i = 0; i < 17; i++) {
-		*sp++ = *context++;
-	}
-	*sp = 0xFFFFFFFF;	//ORIG_R0
-
-	/*Prepare args for prefetchabort handler */
-	curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[0] = addr;
-	curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[1] = status;
-	/*Linux saves the user registers in the stack */
-	curr_vm->mode_states[HC_GM_KERNEL].ctx.reg[2] =
-	    (uint32_t) curr_vm->mode_states[HC_GM_KERNEL].ctx.sp;
-
-	if (!(curr_vm->mode_states[HC_GM_KERNEL].ctx.psr & 0xF)) {	//coming from svc
-		curr_vm->mode_states[HC_GM_KERNEL].ctx.psr |= IRQ_MASK;	//TODO DISABLE IRQnot neccessarily, check this
-	} else {
-		curr_vm->mode_states[HC_GM_KERNEL].ctx.psr &= ~(IRQ_MASK);	//ENABLE IRQ coming from usr
-	}
-
-	/*Prepare pc for handler and lr to return from handler */
-	curr_vm->mode_states[HC_GM_KERNEL].ctx.pc = curr_vm->exception_vector[V_PREFETCH_ABORT];	//(uint32_t)curr_vm->handlers.pabort;
-	curr_vm->mode_states[HC_GM_KERNEL].ctx.lr = curr_vm->exception_vector[V_RET_FROM_EXCEPTION];	//(uint32_t)curr_vm->handlers.ret_from_exception;
-	//printf("Kernel PC:%x LR:%x \n",curr_vm->mode_states[HC_GM_KERNEL].ctx.pc, curr_vm->mode_states[HC_GM_KERNEL].ctx.lr);
-	return RV_OK;
-}
-#else
 return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
 				    uint32_t unused)
 {
@@ -299,8 +249,6 @@ return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
 #endif
 	return RV_OK;
 }
-
-#endif
 
 return_value data_abort_handler(uint32_t addr, uint32_t status,
 				uint32_t unused)

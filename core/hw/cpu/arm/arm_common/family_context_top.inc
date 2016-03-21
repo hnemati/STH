@@ -12,7 +12,7 @@
 
 
     /*
-     * saves context, modifies R12 and LR
+     * saves context, modifies R11, R12 and LR
      */
      .macro store_context
      

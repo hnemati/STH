@@ -253,7 +253,7 @@ return_value prefetch_abort_handler(uint32_t addr, uint32_t status,
 return_value data_abort_handler(uint32_t addr, uint32_t status,
 				uint32_t unused)
 {
-#if 1
+#if 0
 	if (addr >= 0xc0000000)
 		printf("Dabort:%x Status:%x, u=%x \n", addr, status, unused);
 #endif

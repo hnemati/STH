@@ -122,10 +122,6 @@ void init_linux_page()
 				  linux_phys_ram + i * (1 << 20),
 				  MLT_USER_RAM);
 	}
-#if 1				//Linux 3.10
-	/*New ATAG (3.10) at end of image */
-	pt_create_section(flpt_va, 0x9FE00000, 0x9FE00000, MLT_USER_RAM);
-#endif
 
 	uint32_t phys = 0;
 	p = (uint32_t *) ((uint32_t) slpt_va + ((l2_index_p - 1) * 0x400));	/*256 pages * 4 bytes for each lvl 2 page descriptor */
@@ -268,8 +264,12 @@ void linux_init_dmmu()
 
 	}
 
+#if 1				//Linux 3.10
+	/*New ATAG (3.10) at end of image */
+	dmmu_map_L1_section(0x9FE00000, 0x9FE00000, sect_attrs);
+	//dmmu_map_L1_section(0xFA400000, 0x87000000, sect_attrs);
+#endif
 	/*special mapping for start address */
-	/*Maps First MB as coarse with page 1-7 as RO and rest RW */
 
 	table2_pa = linux_pt_get_empty_l2();	/*pointer to private L2PTs in guest */
 
@@ -280,22 +280,27 @@ void linux_init_dmmu()
 
 	uint32_t page_pa = guest_pstart;
 
-	for (i = 0; i < 256; i++, page_pa += 0x1000) {
 #if 0				//Linux 2.6
+	/*Maps First MB as coarse with page 1-7 as RO and rest RW */
+	for (i = 0; i < 256; i++, page_pa += 0x1000) {
 		if (i >= 1 && i <= 7) {
 			uint32_t ro_attrs =
 			    0xE | (MMU_AP_USER_RO << MMU_L2_SMALL_AP_SHIFT);
 			dmmu_l2_map_entry(table2_pa, i, page_pa, ro_attrs);
+		} else
+			dmmu_l2_map_entry(table2_pa, i, page_pa, small_attrs);
+	}
 #else				//Linux 3.10
+	/*Maps First MB as coarse with page 4-7 as RO and rest RW */
+	for (i = 0; i < 256; i++, page_pa += 0x1000) {
 		if (i >= 4 && i <= 7) {
 			uint32_t ro_attrs =
 			    0xE | (MMU_AP_USER_RO << MMU_L2_SMALL_AP_SHIFT);
 			dmmu_l2_map_entry(table2_pa, i, page_pa, ro_attrs);
-#endif
 		} else
 			dmmu_l2_map_entry(table2_pa, i, page_pa, small_attrs);
 	}
-
+#endif
 }
 
 void linux_init()

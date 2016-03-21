@@ -290,7 +290,7 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 		printf("\n\tCould not create L1 pt in new pgd err:%x\n", err);
 		while (1) ;
 	}
-	printf("Exiting from %s \n", __func__);
+	printf("Exiting from %s\n", __func__);
 }
 
 /*In ARM linux pmd refers to pgd, ARM L1 Page table

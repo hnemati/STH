@@ -266,8 +266,10 @@ void create_L1_refs_update(addr_t l1_base_pa_add)
 #define DEBUG_PG_CONTENT 1
 int dmmu_create_L1_pt(addr_t l1_base_pa_add)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
 	printf("I am called %s l1_base_pa_add:%x \n", __func__,
 	       l1_base_pa_add);
+#endif
 	uint32_t l1_idx, pt_idx;
 	uint32_t l1_desc;
 	uint32_t l1_desc_va_add;
@@ -461,8 +463,10 @@ int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 
 uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
 	printf("I am called %s va:%x sec_base:%x attrs:%x \n", __func__, va,
 	       sec_base_add, attrs);
+#endif
 	uint32_t l1_base_add;
 	uint32_t l1_idx;
 	uint32_t l1_desc;
@@ -540,8 +544,10 @@ uint32_t dmmu_map_L1_section(addr_t va, addr_t sec_base_add, uint32_t attrs)
  *  -------------------------------------------------------------------*/
 int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
 	printf("I am called %s va:%x l2_base:%x attrs:%x \n", __func__, va,
 	       l2_base_pa_add, attrs);
+#endif
 	uint32_t l1_base_add;
 	uint32_t l1_idx;
 	uint32_t l1_desc_pa_add;
@@ -663,10 +669,6 @@ uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 				dmmu_entry_t *bft_entry =
 				    get_bft_entry_by_block_idx(ph_block);
 				bft_entry->refcnt -= 1;
-				if (ph_block == 0x86508)
-					printf
-					    ("[;(] in %s for va:%x ref is %x  \n",
-					     __func__, va, bft_entry->refcnt);
 			}
 		*((uint32_t *) l1_desc_va_add) = UNMAP_L1_ENTRY(l1_desc);
 	}
@@ -779,7 +781,9 @@ void create_L2_pgtype_update(uint32_t l2_base_pa_add)
 
 uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
 {
-	//printf("I am called %s  l2_base:%x \n", __func__,  l2_base_pa_add);
+#if DEBUG_DMMU_MMU_LEVEL > 2
+	printf("I am called %s  l2_base:%x \n", __func__, l2_base_pa_add);
+#endif
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -906,11 +910,13 @@ int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 		      addr_t page_pa_add, uint32_t attrs)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
 	if ((page_pa_add == 0x86508000) || (page_pa_add == 0x86509000)
 	    || (page_pa_add == 0x8650A000) || (page_pa_add == 0x8650B000)) {
 		printf("I am called %s mapping pg:%x to:%x \n", __func__,
 		       page_pa_add, l2_base_pa_add);
 	}
+#endif
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -1090,4 +1096,128 @@ int dmmu_handler(uint32_t p03, uint32_t p1, uint32_t p2)
 	default:
 		return ERR_MMU_UNIMPLEMENTED;
 	}
+}
+
+void print_all_pointing_L1(uint32_t pa, uint32_t mask)
+{
+	uint32_t ph_block_pg = PA_TO_PH_BLOCK(pa);
+	dmmu_entry_t *bft_entry_pg = get_bft_entry_by_block_idx(ph_block_pg);
+
+	uint32_t i = 0;
+	uint32_t l1_idx;
+	uint32_t number_of_l1 = 0;
+
+	for (i = 0; i < (1 << 20); i += 4) {
+		uint32_t sec_mask = 0xfff00000 & mask;
+		dmmu_entry_t *bft_entry = get_bft_entry_by_block_idx(i);
+
+		if (bft_entry->type != PAGE_INFO_TYPE_L1PT)
+			continue;
+
+		printf("   checking block %d\n", i);
+
+		for (l1_idx = 0; l1_idx < 4096; l1_idx += 1) {
+			uint32_t l1_desc_pa_add =
+			    L1_IDX_TO_PA(START_PA_OF_BLOCK(i), l1_idx);
+			uint32_t l1_desc_va_add =
+			    mmu_guest_pa_to_va(l1_desc_pa_add,
+					       curr_vm->config);
+			uint32_t l1_desc = *((uint32_t *) l1_desc_va_add);
+			uint32_t l1_type = L1_TYPE(l1_desc);
+			if (l1_type == 2) {
+				l1_sec_t *l1_sec_desc =
+				    (l1_sec_t *) (&l1_desc);
+				uint32_t l1_pointed_pa_add =
+				    START_PA_OF_SECTION(l1_sec_desc);
+				uint32_t ap = GET_L1_AP(l1_sec_desc);
+
+				if ((l1_pointed_pa_add & sec_mask) ==
+				    (pa & sec_mask)) {
+					printf
+					    ("   The L1 in 0x%x (index %d) points to 0x%x\n",
+					     START_PA_OF_BLOCK(i), l1_idx,
+					     pa);
+					printf("      va is %x ap=%d\n",
+					       (l1_idx << 20), ap);
+
+					if (ap == 3) {
+						number_of_l1 += 1;
+					}
+				}
+			}
+		}
+	}
+	printf("   number of L1s = %d\n", number_of_l1);
+	printf("   block ref cnt = %d\n", bft_entry_pg->refcnt);
+}
+
+void remap_region_in_all_l1_usin_l2(uint32_t pa, uint32_t table2_pa)
+{
+	uint32_t ph_block_pg = PA_TO_PH_BLOCK(pa);
+	dmmu_entry_t *bft_entry_pg = get_bft_entry_by_block_idx(ph_block_pg);
+
+	uint32_t i = 0;
+	uint32_t l1_idx;
+	uint32_t number_of_l1 = 0;
+	uint32_t l1_base_add;
+
+	COP_READ(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0,
+		 (uint32_t) l1_base_add);
+
+	uint32_t l1_base_block = PA_TO_PH_BLOCK(l1_base_add);
+	uint32_t curr_l1_block = l1_base_block;
+
+	for (i = 0; i < (1 << 20); i += 4) {
+		uint32_t sec_mask = 0xfff00000 & 0xfff00000;
+		dmmu_entry_t *bft_entry = get_bft_entry_by_block_idx(i);
+
+		if (bft_entry->type != PAGE_INFO_TYPE_L1PT)
+			continue;
+
+		for (l1_idx = 0; l1_idx < 4096; l1_idx += 1) {
+			uint32_t l1_desc_pa_add =
+			    L1_IDX_TO_PA(START_PA_OF_BLOCK(i), l1_idx);
+			uint32_t l1_desc_va_add =
+			    mmu_guest_pa_to_va(l1_desc_pa_add,
+					       curr_vm->config);
+			uint32_t l1_desc = *((uint32_t *) l1_desc_va_add);
+			uint32_t l1_type = L1_TYPE(l1_desc);
+			if (l1_type == 2) {
+				l1_sec_t *l1_sec_desc =
+				    (l1_sec_t *) (&l1_desc);
+				uint32_t l1_pointed_pa_add =
+				    START_PA_OF_SECTION(l1_sec_desc);
+				uint32_t ap = GET_L1_AP(l1_sec_desc);
+				if ((l1_pointed_pa_add & sec_mask) ==
+				    (pa & sec_mask)) {
+					if (ap == 3) {
+
+						if (curr_l1_block != i) {
+							uint32_t
+							    new_l1_base_add =
+							    START_PA_OF_BLOCK
+							    (i);
+							dmmu_switch_mm
+							    (new_l1_base_add);
+							curr_l1_block = i;
+						}
+
+						dmmu_unmap_L1_pageTable_entry
+						    (l1_idx << 20);
+						uint32_t attrs =
+						    MMU_L1_TYPE_PT;
+						attrs |=
+						    (HC_DOM_KERNEL <<
+						     MMU_L1_DOMAIN_SHIFT);
+						dmmu_l1_pt_map(l1_idx << 20,
+							       table2_pa,
+							       attrs);
+					}
+				}
+			}
+		}
+	}
+
+	if (curr_l1_block != l1_base_block)
+		dmmu_switch_mm(l1_base_add);
 }

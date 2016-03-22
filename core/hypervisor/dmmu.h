@@ -155,6 +155,7 @@ void mmu_bft_region_set(addr_t start, size_t size, uint32_t refc,
 #define PA_OF_POINTED_PT(pt) (((uint32_t)pt->addr) << 10)
 
 #define PA_TO_PH_BLOCK(pa) ((pa) >> 12)
+#define START_PA_OF_BLOCK(pa) ((pa) << 12)
 #define PT_PA_TO_PH_BLOCK(pa) ((pa) >> 2)
 
 /* in tranelate.c */

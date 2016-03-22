@@ -3,10 +3,12 @@
 #include "mmu.h"
 
 extern virtual_machine *curr_vm;
-
 #if 0
 #define DEBUG_MMU
+#define DEBUG_MMU_L1_CREATE
+#define DEBUG_MMU_L1_SWITCH
 #endif
+#define DEBUG_MMU_SET_L1
 
 /*Get physical address from Linux virtual address*/
 #define LINUX_PA(va) ((va) - (addr_t)(curr_vm->config->firmware->vstart) + (addr_t)(curr_vm->config->firmware->pstart))
@@ -44,8 +46,9 @@ void dump_L2pt(addr_t l2_base, virtual_machine * curr_vm)
 
 void hypercall_dyn_switch_mm(addr_t table_base, uint32_t context_id)
 {
-#ifdef DEBUG_MMU
-	printf("Hypercall switch PGD\t table_base:%x ", table_base);
+#ifdef DEBUG_MMU_L1_SWITCH
+	printf("Hypercall switch PGD\t table_base:%x context_id:%x\n",
+	       table_base, context_id);
 #endif
 
 	/*Switch the TTB and set context ID */
@@ -62,7 +65,7 @@ void hypercall_dyn_switch_mm(addr_t table_base, uint32_t context_id)
 void hypercall_dyn_free_pgd(addr_t * pgd_va)
 {
 #ifdef DEBUG_MMU
-	printf("\n\t\t\tHypercall FREE PGD\n\t\t pgd:%x ", pgd_va);
+	printf("\n\t\t\tHypercall FREE PGD\n\t\t pgd:%x \n", pgd_va);
 #endif
 	uint32_t i, clean_va;
 
@@ -133,8 +136,9 @@ void hypercall_dyn_free_pgd(addr_t * pgd_va)
  *and cleans the cache, set these pages read only for user */
 void hypercall_dyn_new_pgd(addr_t * pgd_va)
 {
-#ifdef DEBUG_MMU
-	printf("Hypercall new PGD pgd:%x \n", pgd_va);
+#ifdef DEBUG_MMU_L1_CREATE
+	printf("*** Hypercall new PGD pgd: va:0x%x pa:0x%x\n", pgd_va,
+	       LINUX_PA((addr_t) pgd_va));
 #endif
 
 	/*If the requested page is in a section page, we need to modify it to lvl 2 pages
@@ -161,6 +165,7 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 		COP_WRITE(COP_SYSTEM, COP_BRANCH_PRED_INVAL_ALL, linux_va);
 		dsb();
 		isb();
+
 		/*Clear the SECTION entry mapping and replace it with a L2PT */
 		if ((err = dmmu_unmap_L1_pageTable_entry((addr_t) linux_va)))
 			printf
@@ -203,9 +208,7 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 				    (table2_pa, i, page_pa, ro_attrs))
 					printf
 					    ("\n\tCould not map L2 entry in new pgd\n");
-				printf
-				    ("Hypercall new PGD if L2:%x page_pa:%x i:%x attrs: %x %x \n",
-				     table2_pa, page_pa, i, attrs, ro_attrs);
+				//printf("Hypercall new PGD if L2:%x page_pa:%x i:%x attrs:%x \n", table2_pa, page_pa, i, ro_attrs);
 				continue;
 			} else {
 				if (dmmu_l2_map_entry
@@ -215,13 +218,16 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 			}
 		}
 
+		// EMULATION that remapp all existing L1s
+		remap_region_in_all_l1_usin_l2(LINUX_PA((addr_t) pgd_va),
+					       table2_pa);
+
 		/*Invalidate updated entry */
 		CacheDataInvalidateBuff(l1_pt_entry_for_desc, 4);
 		dsb();
 	}
 	/*Here we already got a L2PT */
 	else {
-		printf("Hypercall new PGD ELSE %s \n", __func__);
 		/*Get the index of the page entry to make read only */
 
 		uint32_t table2_pa = MMU_L1_PT_ADDR(l1_desc_entry);
@@ -288,18 +294,17 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 	clean_and_invalidate_cache();
 	if ((err = dmmu_create_L1_pt(LINUX_PA((addr_t) pgd_va)))) {
 		printf("\n\tCould not create L1 pt in new pgd err:%x\n", err);
+		printf("\n\tMaster PGT:%x\n",
+		       LINUX_PA((addr_t) master_pgd_va));
+		print_all_pointing_L1(LINUX_PA((addr_t) pgd_va), 0xfff00000);
 		while (1) ;
 	}
-	printf("Exiting from %s\n", __func__);
 }
 
 /*In ARM linux pmd refers to pgd, ARM L1 Page table
  *Linux maps 2 pmds at a time  */
 void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 {
-#ifdef DEBUG_MMU
-	printf("Hypercall set PMD pmd:%x val:%x \n", pmd, desc);
-#endif
 	uint32_t switch_back = 0;
 	addr_t l1_entry, *l1_pt_entry_for_desc;
 	addr_t curr_pgd_pa, *pgd_va, attrs;
@@ -393,6 +398,10 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 				    ("\n\tCould not map L2 entry in set PMD\n");
 		}
 
+		// EMULATION that remapp all existing L1s
+		remap_region_in_all_l1_usin_l2(MMU_L2_SMALL_ADDR(desc),
+					       table2_pa);
+
 		/*Invalidate updated entry */
 #ifdef AGGRESSIVE_FLUSHING_HANDLERS
 		COP_WRITE(COP_SYSTEM, COP_DCACHE_INVALIDATE_MVA,
@@ -443,6 +452,15 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		if ((err = (dmmu_create_L2_pt(MMU_L2_SMALL_ADDR(desc))))) {
 			printf("\n\tCould not create L2PT in set pmd %x\n",
 			       err);
+
+#ifdef DEBUG_MMU_SET_L1
+			printf("Hypercall set PMD pmd:%x val:%x \n", pmd,
+			       desc);
+#endif
+
+			print_all_pointing_L1(MMU_L2_SMALL_ADDR(desc),
+					      0xfffff000);
+			while (1) ;
 		}
 	}
 
@@ -515,7 +533,6 @@ void hypercall_dyn_set_pmd(addr_t * pmd, uint32_t desc)
 		COP_WRITE(COP_SYSTEM, COP_SYSTEM_TRANSLATION_TABLE0, curr_pgd_pa);	// Set TTB0
 		isb();
 	}
-	printf("Exiting from %s \n", __func__);
 	/*Flush entry */
 	clean_and_invalidate_cache();
 }

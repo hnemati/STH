@@ -7,8 +7,8 @@ extern virtual_machine *curr_vm;
 #define DEBUG_MMU
 #define DEBUG_MMU_L1_CREATE
 #define DEBUG_MMU_L1_SWITCH
-#endif
 #define DEBUG_MMU_SET_L1
+#endif
 
 /*Get physical address from Linux virtual address*/
 #define LINUX_PA(va) ((va) - (addr_t)(curr_vm->config->firmware->vstart) + (addr_t)(curr_vm->config->firmware->pstart))

@@ -331,7 +331,6 @@ void guests_init()
 			printf("add %x %x \n", index, *(guest_pt_va + index));	//(flpt_va + index)
 	}
 #endif
-	/* END GUANCIO CHANGES */
 	/* END KTH CHANGES */
 
 #ifdef TRUSTED
@@ -388,7 +387,6 @@ void start_()
 
 	/*Setting up pagetable rules */
 	memory_init();
-
 	/* Initialize hardware */
 	board_init();
 	soc_init();
@@ -401,6 +399,6 @@ void start_()
 	guests_init();
 	/*Test crypto */
 
-	printf("Hypervisor initialized1.5\n Entering Guest\n");
+	printf("Hypervisor initialized2.0\n Entering Guest\n");
 	start_guest();
 }

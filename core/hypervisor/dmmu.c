@@ -379,6 +379,10 @@ int dmmu_create_L1_pt(addr_t l1_base_pa_add)
  *  ------------------------------------------------------------------- */
 int dmmu_unmap_L1_pt(addr_t l1_base_pa_add)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
+	printf("I am called %s l1_base_pa_add:%x \n", __func__,
+	       l1_base_pa_add);
+#endif
 	uint32_t l1_idx, pt_idx, sec_idx;
 	uint32_t l1_desc;
 	uint32_t l1_desc_va_add;
@@ -617,6 +621,9 @@ int dmmu_l1_pt_map(addr_t va, addr_t l2_base_pa_add, uint32_t attrs)
  *  ------------------------------------------------------------------- */
 uint32_t dmmu_unmap_L1_pageTable_entry(addr_t va)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
+	printf("I am called %s va:%x \n", __func__, va);
+#endif
 	uint32_t l1_base_add;
 	uint32_t l1_idx;
 	uint32_t l1_desc_pa_add;
@@ -855,6 +862,10 @@ uint32_t dmmu_create_L2_pt(addr_t l2_base_pa_add)
  *  -------------------------------------------------------------------*/
 int dmmu_unmap_L2_pt(addr_t l2_base_pa_add)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
+	printf("I am called %s l2_base_pa_add:%x \n", __func__,
+	       l2_base_pa_add);
+#endif
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -911,11 +922,8 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
 		      addr_t page_pa_add, uint32_t attrs)
 {
 #if DEBUG_DMMU_MMU_LEVEL > 2
-	if ((page_pa_add == 0x86508000) || (page_pa_add == 0x86509000)
-	    || (page_pa_add == 0x8650A000) || (page_pa_add == 0x8650B000)) {
-		printf("I am called %s mapping pg:%x to:%x \n", __func__,
-		       page_pa_add, l2_base_pa_add);
-	}
+	printf("I am called %s mapping pg:%x to:%x \n", __func__, page_pa_add,
+	       l2_base_pa_add);
 #endif
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
@@ -969,6 +977,10 @@ int dmmu_l2_map_entry(addr_t l2_base_pa_add, uint32_t l2_idx,
  *  -------------------------------------------------------------------*/
 int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 {
+#if DEBUG_DMMU_MMU_LEVEL > 2
+	printf("I am called %s l2_base_pa_add:%x l2_idx:%x \n", __func__,
+	       l2_base_pa_add, l2_idx);
+#endif
 	uint32_t l2_desc_pa_add;
 	uint32_t l2_desc_va_add;
 	uint32_t l2_desc;
@@ -1015,7 +1027,10 @@ int dmmu_l2_unmap_entry(addr_t l2_base_pa_add, uint32_t l2_idx)
 //#define SW_DEBUG
 int dmmu_switch_mm(addr_t l1_base_pa_add)
 {
-	//printf("I am called %s  l1_base:%x \n", __func__,  l1_base_pa_add);
+#if DEBUG_DMMU_MMU_LEVEL > 2
+	printf("I am called %s  l1_base:%x \n", __func__, l1_base_pa_add);
+#endif
+
 	int i;
 	uint32_t ph_block;
 

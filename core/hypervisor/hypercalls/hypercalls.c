@@ -104,7 +104,6 @@ void hypercall_restore_linux_regs(uint32_t return_value, BOOL syscall)
 	 *for systemcall arguments and we have to add a offset */
 	mode = *((uint32_t *) (sp + 16 + (offset / 4)));	//PSR register
 	stack_pc = *((uint32_t *) (sp + 15));	//pc register
-	//printf("In %s with mode is set to %x stack:%x\n", __func__, (mode & 0x1F), sp);
 	if ((mode & 0x1F) == 0x10)
 		kernel_space = 0;
 	else if ((mode & 0x1F) == 0x13)

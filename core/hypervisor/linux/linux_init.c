@@ -76,7 +76,7 @@ dmmu_clear_linux_mappings()
 	uint32_t VMALLOC_END = curr_vm->guest_info.vmalloc_end;
 
 	/*
-	 * Clear out all the mappings below the kernel image. Maps
+	 * Clear out all the mappings below the kernel image.
 	 */
 
 	for (address = 0; address < guest_vstart; address += SECTION_SIZE) {

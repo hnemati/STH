@@ -4,7 +4,7 @@
 
 extern virtual_machine *curr_vm;
 #if 0
-#define DEBUG_MMU
+#define DEBUG_MMU_L1_Free
 #define DEBUG_MMU_L1_CREATE
 #define DEBUG_MMU_L1_SWITCH
 #define DEBUG_MMU_SET_L1
@@ -64,7 +64,7 @@ void hypercall_dyn_switch_mm(addr_t table_base, uint32_t context_id)
 /* Free Page table, Make it RW again */
 void hypercall_dyn_free_pgd(addr_t * pgd_va)
 {
-#ifdef DEBUG_MMU
+#ifdef DEBUG_MMU_L1_Free
 	printf("\n\t\t\tHypercall FREE PGD\n\t\t pgd:%x \n", pgd_va);
 #endif
 	uint32_t i, clean_va;
@@ -283,8 +283,6 @@ void hypercall_dyn_new_pgd(addr_t * pgd_va)
 	 * Copy kernel, IO and hypervisor mappings
 	 * 0x2fc0 - 0x4000
 	 * */
-	//memset((void *)pgd_va, 0, 0x2fc0);
-	//memcpy((void *)(pgd_va + 0x2fC0), (uint32_t *)((uint32_t)(master_pgd_va) + 0x2fc0), 0x1040);
 	uint32_t l1_va_add =
 	    mmu_guest_pa_to_va(LINUX_PA((addr_t) pgd_va), curr_vm->config);
 	memset((void *)l1_va_add, 0, 0x2fc0);
@@ -607,10 +605,6 @@ void hypercall_dyn_set_pte(addr_t * l2pt_linux_entry_va, uint32_t linux_pte,
 				    ("\n\tCould not map l2 entry in set pte hypercall\n");
 			}
 		}
-		/*Cannot map linux entry, ap = 0 generates error */
-		//printf("dmmu_l2_map_entry err:%x %x %x %x\n", err, entry_idx, MMU_L1_PT_ADDR(phys_pte),attrs);
-		//dump_L1pt(curr_vm);
-		//dump_L2pt(0x8603D000,curr_vm);
 	} else {
 		/*Unmap */
 		if (dmmu_l2_unmap_entry

@@ -52,7 +52,7 @@ typedef unsigned int uint_32t;
 #if defined( _MSC_VER ) && ( _MSC_VER >= 1300 )
 #  include <stddef.h>
 #  define ptrint_t intptr_t
-#elif 1//defined( __ECOS__ )
+#elif defined( __ECOS__ )
 #  define intptr_t unsigned int
 #  define ptrint_t intptr_t
 #elif defined( __GNUC__ ) && ( __GNUC__ >= 3 )
@@ -179,18 +179,18 @@ typedef unsigned int uint_32t;
 /*	These defines are used to detect and set the memory alignment of pointers.
     Note that offsets are in bytes.
 
-	ALIGN_OFFSET(x,n)			return the positive or zero offset of 
-								the memory addressed by the pointer 'x' 
-								from an address that is aligned on an 
+	ALIGN_OFFSET(x,n)			return the positive or zero offset of
+								the memory addressed by the pointer 'x'
+								from an address that is aligned on an
 								'n' byte boundary ('n' is a power of 2)
 
 	ALIGN_FLOOR(x,n)			return a pointer that points to memory
-								that is aligned on an 'n' byte boundary 
+								that is aligned on an 'n' byte boundary
 								and is not higher than the memory address
 								pointed to by 'x' ('n' is a power of 2)
 
 	ALIGN_CEIL(x,n)				return a pointer that points to memory
-								that is aligned on an 'n' byte boundary 
+								that is aligned on an 'n' byte boundary
 								and is not lower than the memory address
 								pointed to by 'x' ('n' is a power of 2)
 */
@@ -201,28 +201,28 @@ typedef unsigned int uint_32t;
 
 /*  These defines are used to declare buffers in a way that allows
     faster operations on longer variables to be used.  In all these
-    defines 'size' must be a power of 2 and >= 8. NOTE that the 
+    defines 'size' must be a power of 2 and >= 8. NOTE that the
     buffer size is in bytes but the type length is in bits
 
-    UNIT_TYPEDEF(x,size)        declares a variable 'x' of length 
+    UNIT_TYPEDEF(x,size)        declares a variable 'x' of length
                                 'size' bits
 
-    BUFR_TYPEDEF(x,size,bsize)  declares a buffer 'x' of length 'bsize' 
+    BUFR_TYPEDEF(x,size,bsize)  declares a buffer 'x' of length 'bsize'
                                 bytes defined as an array of variables
-                                each of 'size' bits (bsize must be a 
+                                each of 'size' bits (bsize must be a
                                 multiple of size / 8)
 
-    UNIT_CAST(x,size)           casts a variable to a type of 
+    UNIT_CAST(x,size)           casts a variable to a type of
                                 length 'size' bits
 
-    UPTR_CAST(x,size)           casts a pointer to a pointer to a 
+    UPTR_CAST(x,size)           casts a pointer to a pointer to a
                                 varaiable of length 'size' bits
 */
 
 #define UI_TYPE(size)               uint_##size##t
 #define UNIT_TYPEDEF(x,size)        typedef UI_TYPE(size) x
 #define BUFR_TYPEDEF(x,size,bsize)  typedef UI_TYPE(size) x[bsize / (size >> 3)]
-#define UNIT_CAST(x,size)           ((UI_TYPE(size) )(x))  
+#define UNIT_CAST(x,size)           ((UI_TYPE(size) )(x))
 #define UPTR_CAST(x,size)           ((UI_TYPE(size)*)(x))
 
 #if defined(__cplusplus)

@@ -34,7 +34,7 @@ void __bad_assert(){
 /*
  * Author from
  * https://www.student.cs.uwaterloo.ca/~cs350/common/os161-src-html/memmove_8c-source.html*/
-typedef unsigned long uintptr_t;
+// typedef unsigned long uintptr_t;
 
 #include <types.h>
 void *memmove(void *dst, const void *src, size_t len)

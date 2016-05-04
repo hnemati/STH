@@ -21,7 +21,7 @@ void free(void *adr)
 	heap_free(&heap, adr);
 }
 
-void *malloc(uint32_t size)
+void *malloc(size_t size)
 {
 
 	return heap_alloc(&heap, size);
